@@ -1,12 +1,28 @@
 using Infrastructure;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Core.Interfaces;
+using SeatRush.Middleware;
+using SeatRush.SignalR;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddExceptionHandler<RedisUnavailableExceptionHandler>();
+builder.Services.AddProblemDetails();
+
+// Live seat map. The Redis backplane relays group messages between API instances, so a hold made on
+// instance A reaches viewers connected to instance B. Same Redis as holds; channels are prefixed.
+builder.Services.AddSignalR()
+    .AddStackExchangeRedis(builder.Configuration.GetConnectionString("Redis")!, o =>
+    {
+        o.Configuration.ChannelPrefix = RedisChannel.Literal("seatrush");
+        o.Configuration.AbortOnConnectFail = false;
+    });
+builder.Services.AddSingleton<ISeatMapNotifier, SeatMapNotifier>();
 
 // The Angular app is served from a different origin (localhost:4200 locally, Vercel in production).
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
@@ -14,9 +30,11 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
     .WithOrigins(allowedOrigins)
     .AllowAnyHeader()
     .AllowAnyMethod()
-    .AllowCredentials())); // needed later by SignalR
+    .AllowCredentials())); // required by the SignalR client
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
@@ -27,6 +45,7 @@ app.UseCors();
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<SeatMapHub>(SeatMapHub.Path);
 
 // Apply migrations and seed the demo event on startup (single-instance deployment, so this is safe).
 using (var scope = app.Services.CreateScope())

@@ -8,7 +8,7 @@ public class SeatConfiguration : IEntityTypeConfiguration<Seat>
 {
     public void Configure(EntityTypeBuilder<Seat> builder)
     {
-        // Stored as text so raw SQL (status = 'Held') stays readable.
+        // Stored as text so raw SQL (status = 'Booked') stays readable.
         builder.Property(s => s.Status).HasConversion<string>().HasMaxLength(16);
 
         builder.Property(s => s.Version).IsConcurrencyToken();
@@ -26,11 +26,7 @@ public class SeatConfiguration : IEntityTypeConfiguration<Seat>
         // Each venue seat is sold at most once per event.
         builder.HasIndex(s => new { s.EventId, s.VenueSeatId }).IsUnique();
 
-        // Supports the per-user hold-limit count.
-        builder.HasIndex(s => new { s.HeldBy, s.Status });
-
-        builder.ToTable(t => t.HasCheckConstraint(
-            "ck_seats_held_has_owner_and_expiry",
-            "status <> 'Held' OR (held_by IS NOT NULL AND hold_expires_at IS NOT NULL)"));
+        // Holds live in Redis; Postgres only ever records Available or Booked.
+        builder.ToTable(t => t.HasCheckConstraint("ck_seats_status", "status IN ('Available', 'Booked')"));
     }
 }

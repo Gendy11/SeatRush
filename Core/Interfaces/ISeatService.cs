@@ -5,13 +5,8 @@ namespace Core.Interfaces;
 public interface ISeatService
 {
     /// <summary>
-    /// Atomically holds a seat for the user. Exactly one concurrent caller can win a given seat.
-    /// Holding a seat the user already holds is idempotent and returns the existing expiry.
+    /// Every seat of the showing: Booked/Available from Postgres, Held from Redis, plus the change counter
+    /// the client needs to apply live updates on top. Seats held by <paramref name="viewerId"/> are flagged IsMine.
     /// </summary>
-    Task<HoldResult> HoldSeatAsync(int seatId, Guid userId, CancellationToken ct = default);
-
-    /// <summary>Releases the user's active hold. Returns false if the user does not hold the seat.</summary>
-    Task<bool> ReleaseHoldAsync(int seatId, Guid userId, CancellationToken ct = default);
-
-    Task<IReadOnlyList<SeatSnapshot>> GetSeatMapAsync(int eventId, CancellationToken ct = default);
+    Task<SeatMapSnapshot> GetSeatMapAsync(int eventId, Guid? viewerId, CancellationToken ct = default);
 }

@@ -1,6 +1,8 @@
 # SeatRush Requirements
 
-Cinema-style flash-sale ticketing. Venues (screens) have fixed seat layouts; events are showings in a venue at a show time (UTC).
+Cinema-style flash-sale ticketing. Venues (screens) have fixed seat layouts; movies are shown as events (showings) in a venue at a show time (UTC).
+
+**Design principle:** the system is built as if it ran at large scale (many API instances, sharded Redis, heavy contention), even though the deployment is a single free-tier instance.
 
 ## Functional requirements
 
@@ -8,14 +10,14 @@ Cinema-style flash-sale ticketing. Venues (screens) have fixed seat layouts; eve
 | ID | Requirement | Status |
 |----|-------------|--------|
 | FR1 | Venues with fixed seat layouts (rows × seats per row) are seeded at startup from `venues.json` if none exist. | Done |
-| FR2 | Showings (event = name + venue + show time) are seeded at startup from `events.json` if none exist. Each gets its own seat inventory copied from the venue layout. Tickets are on sale as soon as the event exists. | Done |
+| FR2 | Movies (title, poster, age rating, duration) and showings (event = movie + venue + show time) are seeded at startup from `movies.json` / `events.json` if none exist. Each gets its own seat inventory copied from the venue layout. Tickets are on sale as soon as the event exists. | Done |
 | FR3 | Two showings in the same venue at the same show time are rejected (unique index + seeder check). | Done |
 
 ### 2. Browsing
 | ID | Requirement | Status |
 |----|-------------|--------|
 | FR4 | List upcoming showings (show time in the future), soonest first. | Done |
-| FR5 | View a showing's seat map with each seat's status (Available / Held / Booked). Expired holds show as Available. | |
+| FR5 | View a showing's seat map with each seat's status (Available / Held / Booked). | Done |
 
 ### 3. Waiting room
 | ID | Requirement | Status |
@@ -28,11 +30,11 @@ Cinema-style flash-sale ticketing. Venues (screens) have fixed seat layouts; eve
 ### 4. Seat hold
 | ID | Requirement | Status |
 |----|-------------|--------|
-| FR10 | Hold a seat for 5 minutes. Two users grabbing the same seat at the same instant → exactly one wins. | |
-| FR11 | Max 4 held seats per user per showing. | |
-| FR12 | Re-holding a seat you already hold returns the existing hold (idempotent). | |
-| FR13 | Release your own hold. | |
-| FR14 | Expired holds are released by a background sweeper (~15s) and treated as available on read (lazy expiry). | |
+| FR10 | Opening a showing's seat map starts a 7-minute booking session with a visible countdown. One active session per user per showing; reopening returns the same session and deadline. | Done |
+| FR11 | Clicking an available seat holds it until the session ends. Two users grabbing the same seat at the same instant → exactly one wins. No limit on seats per user. | Done |
+| FR12 | Re-holding a seat you already hold succeeds (idempotent). | Done |
+| FR13 | Release your own hold by clicking the seat again; you can never release someone else's hold. | Done |
+| FR14 | When the session ends, its holds expire automatically (Redis TTL) and viewers see the seats freed. The user can start a new session immediately. | Done |
 
 ### 5. Checkout
 | ID | Requirement | Status |
@@ -45,7 +47,7 @@ Cinema-style flash-sale ticketing. Venues (screens) have fixed seat layouts; eve
 ### 6. Real-time
 | ID | Requirement | Status |
 |----|-------------|--------|
-| FR19 | Viewers of a showing see seat status changes live (SignalR group per showing). | |
+| FR19 | Viewers of a showing see seat status changes live (SignalR group per showing). | Done |
 
 ### 7. Protection
 | ID | Requirement | Status |
@@ -76,19 +78,26 @@ Cinema-style flash-sale ticketing. Venues (screens) have fixed seat layouts; eve
 
 ### Resilience / backpressure
 - **NFR6** Under overload, shed traffic (waiting room, 429) instead of slowing down for everyone or crashing.
-- **NFR7** Hold expiry still works if the sweeper fails (lazy expiry on read).
-- **NFR8** If Redis is down, sales stay correct; only the waiting room and rate limiting degrade. Postgres is the source of truth.
+- **NFR7** Hold expiry never depends on a background job: holds are Redis keys with a TTL. The background job only broadcasts releases.
+- **NFR8** If Redis is down, sessions and holds fail closed (503) and no seat can ever be oversold: Postgres is the final authority on bookings (conditional UPDATE + unique index).
 
 ### Operability / deployment
-- **NFR9** Single process: API, SignalR hub and background jobs together.
+- **NFR9** Stateless API: all shared state lives in Postgres or Redis, so it can run as N instances behind a load balancer. Deployed as one process on the free tier. Redis keys use `{eventId}` hash tags so one showing's keys stay on one cluster shard.
 - **NFR10** Runs on free tiers (Vercel, Render / MonsterASP.NET, Neon, Upstash) and tolerates cold starts.
 - **NFR11** Whole stack runs locally with one `docker compose up`.
 
 ### Testability
-- **NFR12** Concurrency rules covered by integration tests against real Postgres (Testcontainers).
+- **NFR12** Concurrency rules covered by integration tests against real Postgres and Redis (Testcontainers).
 
 ### Simplicity
 - **NFR13** Modular monolith; no microservices, queues or Kubernetes. Tradeoffs documented in the README.
 
 ## Conventions
 - All times are stored and returned in UTC (`timestamptz`); the frontend converts for display.
+
+## Data ownership
+| Data | Store |
+|------|-------|
+| Venues, movies, showings, booked seats | Postgres (source of truth for sales) |
+| Booking sessions (7-min timer) | Redis, TTL |
+| Seat holds | Redis, TTL; claimed with conditional transactions (`SET NX` + index), released only by the owner |

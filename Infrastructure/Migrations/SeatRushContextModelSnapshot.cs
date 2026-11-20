@@ -161,14 +161,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("event_id");
 
-                    b.Property<Guid?>("HeldBy")
-                        .HasColumnType("uuid")
-                        .HasColumnName("held_by");
-
-                    b.Property<DateTime?>("HoldExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("hold_expires_at");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -194,12 +186,9 @@ namespace Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_seats_event_id_venue_seat_id");
 
-                    b.HasIndex("HeldBy", "Status")
-                        .HasDatabaseName("ix_seats_held_by_status");
-
                     b.ToTable("seats", null, t =>
                         {
-                            t.HasCheckConstraint("ck_seats_held_has_owner_and_expiry", "status <> 'Held' OR (held_by IS NOT NULL AND hold_expires_at IS NOT NULL)");
+                            t.HasCheckConstraint("ck_seats_status", "status IN ('Available', 'Booked')");
                         });
                 });
 

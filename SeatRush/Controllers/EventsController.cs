@@ -22,6 +22,35 @@ public class EventsController(SeatRushContext db, ISeatService seats) : BaseApiC
         return Ok(events);
     }
 
+    /// <summary>
+    /// FR10: start (or resume) the user's 7-minute booking session for this showing.
+    /// Idempotent: refreshing the page returns the same deadline.
+    /// </summary>
+    [HttpPost("{eventId:int}/session")]
+    public async Task<ActionResult<BookingSessionDto>> StartSession(
+        int eventId,
+        [FromServices] IBookingSessionService sessions,
+        [FromServices] TimeProvider clock,
+        CancellationToken ct)
+    {
+        if (!TryGetUserId(out var userId))
+            return MissingUser();
+
+        var showTime = await db.Events
+            .Where(e => e.Id == eventId)
+            .Select(e => (DateTime?)e.ShowTime)
+            .FirstOrDefaultAsync(ct);
+
+        if (showTime is null)
+            return NotFound();
+
+        if (showTime <= clock.GetUtcNow().UtcDateTime)
+            return Problem(statusCode: StatusCodes.Status409Conflict, title: "This showing has already started.");
+
+        var session = await sessions.GetOrStartAsync(eventId, userId);
+        return Ok(new BookingSessionDto(eventId, session.ExpiresAt, clock.GetUtcNow().UtcDateTime));
+    }
+
     /// <summary>One showing with its movie and venue details (header of the seat-map page).</summary>
     [HttpGet("{eventId:int}")]
     public async Task<ActionResult<EventDetailsDto>> GetEvent(int eventId, CancellationToken ct)
@@ -43,14 +72,22 @@ public class EventsController(SeatRushContext db, ISeatService seats) : BaseApiC
         return ev is null ? NotFound() : Ok(ev);
     }
 
-    /// <summary>FR5: every seat of the showing with its status. Expired holds are reported as Available.</summary>
+    /// <summary>
+    /// FR5: every seat with its status (Booked from Postgres, Held from Redis).
+    /// Seats held by the caller (X-User-Id) are flagged isMine.
+    /// </summary>
     [HttpGet("{eventId:int}/seats")]
-    public async Task<ActionResult<IReadOnlyList<SeatDto>>> GetSeatMap(int eventId, CancellationToken ct)
+    public async Task<ActionResult<SeatMapDto>> GetSeatMap(int eventId, [FromServices] TimeProvider clock, CancellationToken ct)
     {
         if (!await db.Events.AnyAsync(e => e.Id == eventId, ct))
             return NotFound();
 
-        var map = await seats.GetSeatMapAsync(eventId, ct);
-        return Ok(map.Select(s => new SeatDto(s.Id, s.Row, s.Number, s.Status.ToString(), s.Version)));
+        Guid? viewer = TryGetUserId(out var userId) ? userId : null;
+        var map = await seats.GetSeatMapAsync(eventId, viewer, ct);
+
+        return Ok(new SeatMapDto(
+            map.Seq,
+            clock.GetUtcNow().UtcDateTime,
+            map.Seats.Select(s => new SeatDto(s.Id, s.Row, s.Number, s.Status.ToString(), s.HoldExpiresAt, s.IsMine)).ToList()));
     }
 }

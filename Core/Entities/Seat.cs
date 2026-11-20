@@ -1,6 +1,9 @@
 namespace Core.Entities;
 
-/// <summary>The sellable copy of a venue seat for one event. This is the row holds/bookings contend on.</summary>
+/// <summary>
+/// The sellable copy of a venue seat for one event. In Postgres a seat is only Available or Booked;
+/// temporary holds live in Redis (see ISeatHoldService) and are merged in when the seat map is read.
+/// </summary>
 public class Seat : BaseEntity
 {
     public int EventId { get; set; }
@@ -10,10 +13,6 @@ public class Seat : BaseEntity
     public VenueSeat? VenueSeat { get; set; }
 
     public SeatStatus Status { get; set; }
-
-    public Guid? HeldBy { get; set; }
-
-    public DateTime? HoldExpiresAt { get; set; }
 
     /// <summary>Incremented on every status change (real-time ordering + optimistic concurrency token).</summary>
     public int Version { get; set; }

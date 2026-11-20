@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -22,9 +23,9 @@
     <Folder Include="DTOs\" />
     <Folder Include="Errors\" />
     <Folder Include="Extensions\" />
-    <Folder Include="Middleware\" />
+    
     <Folder Include="RequestHelpers\" />
-    <Folder Include="SignalR\" />
+    
   </ItemGroup>
 
 </Project>

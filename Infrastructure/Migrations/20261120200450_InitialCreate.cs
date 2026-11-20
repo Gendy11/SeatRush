@@ -101,14 +101,12 @@ namespace Infrastructure.Migrations
                     event_id = table.Column<int>(type: "integer", nullable: false),
                     venue_seat_id = table.Column<int>(type: "integer", nullable: false),
                     status = table.Column<string>(type: "character varying(16)", maxLength: 16, nullable: false),
-                    held_by = table.Column<Guid>(type: "uuid", nullable: true),
-                    hold_expires_at = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     version = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_seats", x => x.id);
-                    table.CheckConstraint("ck_seats_held_has_owner_and_expiry", "status <> 'Held' OR (held_by IS NOT NULL AND hold_expires_at IS NOT NULL)");
+                    table.CheckConstraint("ck_seats_status", "status IN ('Available', 'Booked')");
                     table.ForeignKey(
                         name: "fk_seats_events_event_id",
                         column: x => x.event_id,
@@ -181,11 +179,6 @@ namespace Infrastructure.Migrations
                 table: "seats",
                 columns: new[] { "event_id", "venue_seat_id" },
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "ix_seats_held_by_status",
-                table: "seats",
-                columns: new[] { "held_by", "status" });
 
             migrationBuilder.CreateIndex(
                 name: "ix_seats_venue_seat_id",
