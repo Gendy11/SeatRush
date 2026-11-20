@@ -1,0 +1,39 @@
+<section class="container page">
+  <h1 class="page__title">Now Showing</h1>
+
+  @if (loading()) {
+    <div class="grid">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="card card--skeleton">
+          <div class="poster"></div>
+        </div>
+      }
+    </div>
+  } @else if (error()) {
+    <p class="state">Couldn't load showings. Is the API running?</p>
+  } @else if (movies().length === 0) {
+    <p class="state">No upcoming showings.</p>
+  } @else {
+    <div class="grid">
+      @for (movie of movies(); track movie.name) {
+        <article class="card">
+          <div class="poster" [style.background]="posterGradient(movie.name)">
+            <span class="poster__title">{{ movie.name }}</span>
+          </div>
+
+          <h2 class="card__title">{{ movie.name }}</h2>
+
+          <ul class="showtimes">
+            @for (s of movie.showings; track s.id) {
+              <li class="showtime">
+                <span class="showtime__date">{{ s.showTime | date: 'EEE d MMM' }}</span>
+                <span class="showtime__time">{{ s.showTime | date: 'HH:mm' }}</span>
+                <span class="showtime__venue">{{ s.venue }}</span>
+              </li>
+            }
+          </ul>
+        </article>
+      }
+    </div>
+  }
+</section>

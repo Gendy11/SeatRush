@@ -8,11 +8,13 @@ namespace SeatRush.Controllers;
 
 public class EventsController(SeatRushContext db, ISeatService seats) : BaseApiController
 {
+    /// <summary>FR4: upcoming showings only, soonest first.</summary>
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<EventDto>>> GetEvents(CancellationToken ct)
     {
         var events = await db.Events
             .AsNoTracking()
+            .Where(e => e.ShowTime > DateTime.UtcNow) // translated to now() in Postgres
             .OrderBy(e => e.ShowTime)
             .Select(e => new EventDto(e.Id, e.Name, e.Venue!.Name, e.ShowTime, e.Venue.Capacity))
             .ToListAsync(ct);

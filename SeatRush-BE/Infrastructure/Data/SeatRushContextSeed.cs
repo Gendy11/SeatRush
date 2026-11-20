@@ -8,8 +8,8 @@ public static class SeatRushContextSeed
 {
     private record VenueSeed(string Name, int Rows, int SeatsPerRow);
 
-    // Show times are relative to today so the seeded showings are always in the future.
-    private record EventSeed(string Name, string Venue, int DaysFromNow, TimeOnly Time);
+    // Show times are fixed UTC dates far enough ahead that the seeded showings stay upcoming.
+    private record EventSeed(string Name, string Venue, DateTime ShowTime);
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -41,7 +41,6 @@ public static class SeatRushContextSeed
 
         // Venue seats must be loaded: Event.For copies them into per-event Seat rows.
         var venues = await context.Venues.Include(v => v.Seats).ToDictionaryAsync(v => v.Name, ct);
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var scheduled = new HashSet<(string Venue, DateTime ShowTime)>();
 
         foreach (var s in seeds)
@@ -49,7 +48,7 @@ public static class SeatRushContextSeed
             if (!venues.TryGetValue(s.Venue, out var venue))
                 throw new InvalidOperationException($"events.json references unknown venue '{s.Venue}'.");
 
-            var showTime = today.AddDays(s.DaysFromNow).ToDateTime(s.Time, DateTimeKind.Utc);
+            var showTime = s.ShowTime.ToUniversalTime();
 
             // FR3: one showing per venue per show time. The unique index (venue_id, show_time) enforces this
             // in the database; this check just fails early with a readable message.
