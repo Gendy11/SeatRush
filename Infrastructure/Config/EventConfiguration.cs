@@ -8,7 +8,11 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
 {
     public void Configure(EntityTypeBuilder<Event> builder)
     {
-        builder.Property(e => e.Name).HasMaxLength(200);
+        builder.HasOne(e => e.Movie)
+            .WithMany()
+            .HasForeignKey(e => e.MovieId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasOne(e => e.Venue)
             .WithMany()
             .HasForeignKey(e => e.VenueId)

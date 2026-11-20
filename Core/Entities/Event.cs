@@ -1,9 +1,11 @@
 namespace Core.Entities;
 
-/// <summary>A showing in a venue (e.g. a film screening). Its seat inventory is copied from the venue layout.</summary>
+/// <summary>A showing of a movie in a venue at a show time. Its seat inventory is copied from the venue layout.</summary>
 public class Event : BaseEntity
 {
-    public required string Name { get; set; }
+    public int MovieId { get; set; }
+    public Movie? Movie { get; set; }
+
     public int VenueId { get; set; }
     public Venue? Venue { get; set; }
 
@@ -12,12 +14,12 @@ public class Event : BaseEntity
 
     public List<Seat> Seats { get; set; } = [];
 
-    public static Event For(Venue venue, string name, DateTime showTime)
+    public static Event For(Movie movie, Venue venue, DateTime showTime)
     {
         if (venue.Seats.Count == 0)
             throw new InvalidOperationException("Venue seats must be loaded to create an event.");
 
-        var ev = new Event { Name = name, Venue = venue, ShowTime = showTime };
+        var ev = new Event { Movie = movie, Venue = venue, ShowTime = showTime };
 
         foreach (var venueSeat in venue.Seats)
             ev.Seats.Add(new Seat { VenueSeat = venueSeat, Status = SeatStatus.Available });

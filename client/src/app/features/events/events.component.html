@@ -1,5 +1,42 @@
+@if (featured(); as movie) {
+  <section class="hero">
+    <div class="hero__backdrop" [style.background-image]="'url(' + movie.posterUrl + ')'"></div>
+
+    <div class="container hero__inner">
+      <img class="hero__poster" [src]="movie.posterUrl" [alt]="movie.title + ' poster'" />
+
+      <div class="hero__content">
+        <span class="hero__eyebrow">Featured · Next up</span>
+        <h1 class="hero__title">{{ movie.title }}</h1>
+
+        <div class="hero__meta">
+          <span class="pill">{{ movie.ageRating }}</span>
+          <span>{{ formatDuration(movie.durationMinutes) }}</span>
+          <span class="dot"></span>
+          <span>{{ movie.showings.length }} showings</span>
+        </div>
+
+        @if (movie.showings[0]; as next) {
+          <p class="hero__next">
+            Next showing
+            <strong>{{ next.showTime | date: 'EEEE d MMM · HH:mm' }}</strong>
+            in {{ next.venue }}
+          </p>
+        }
+
+        <button type="button" class="btn" (click)="scrollToMovie(movie.id)">View showtimes</button>
+      </div>
+    </div>
+  </section>
+}
+
 <section class="container page">
-  <h1 class="page__title">Now Showing</h1>
+  <div class="page__head">
+    <h2 class="page__title">Now Showing</h2>
+    @if (!loading() && !error() && movies().length) {
+      <span class="page__count">{{ movies().length }} films · {{ showingCount() }} showings</span>
+    }
+  </div>
 
   @if (loading()) {
     <div class="grid">
@@ -15,20 +52,26 @@
     <p class="state">No upcoming showings.</p>
   } @else {
     <div class="grid">
-      @for (movie of movies(); track movie.name) {
-        <article class="card">
-          <div class="poster" [style.background]="posterGradient(movie.name)">
-            <span class="poster__title">{{ movie.name }}</span>
+      @for (movie of movies(); track movie.id) {
+        <article class="card" [id]="'movie-' + movie.id">
+          <div class="poster">
+            <img [src]="movie.posterUrl" [alt]="movie.title + ' poster'" loading="lazy" />
+            <span class="badge">{{ movie.ageRating }}</span>
           </div>
 
-          <h2 class="card__title">{{ movie.name }}</h2>
+          <div class="card__info">
+            <h3 class="card__title">{{ movie.title }}</h3>
+            <span class="card__meta">{{ formatDuration(movie.durationMinutes) }}</span>
+          </div>
 
           <ul class="showtimes">
-            @for (s of movie.showings; track s.id) {
-              <li class="showtime">
-                <span class="showtime__date">{{ s.showTime | date: 'EEE d MMM' }}</span>
-                <span class="showtime__time">{{ s.showTime | date: 'HH:mm' }}</span>
-                <span class="showtime__venue">{{ s.venue }}</span>
+            @for (s of movie.showings; track s.eventId) {
+              <li>
+                <a class="showtime" [routerLink]="['/events', s.eventId]">
+                  <span class="showtime__date">{{ s.showTime | date: 'EEE d MMM' }}</span>
+                  <span class="showtime__time">{{ s.showTime | date: 'HH:mm' }}</span>
+                  <span class="showtime__venue">{{ s.venue }}</span>
+                </a>
               </li>
             }
           </ul>

@@ -13,6 +13,23 @@ namespace Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "movies",
+                columns: table => new
+                {
+                    id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    title = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    poster_url = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
+                    age_rating = table.Column<string>(type: "character varying(8)", maxLength: 8, nullable: false),
+                    duration_minutes = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("pk_movies", x => x.id);
+                    table.CheckConstraint("ck_movies_duration_positive", "duration_minutes > 0");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "venues",
                 columns: table => new
                 {
@@ -33,13 +50,19 @@ namespace Infrastructure.Migrations
                 {
                     id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    movie_id = table.Column<int>(type: "integer", nullable: false),
                     venue_id = table.Column<int>(type: "integer", nullable: false),
                     show_time = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("pk_events", x => x.id);
+                    table.ForeignKey(
+                        name: "fk_events_movies_movie_id",
+                        column: x => x.movie_id,
+                        principalTable: "movies",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "fk_events_venues_venue_id",
                         column: x => x.venue_id,
@@ -137,9 +160,20 @@ namespace Infrastructure.Migrations
                 filter: "status = 'Confirmed'");
 
             migrationBuilder.CreateIndex(
+                name: "ix_events_movie_id",
+                table: "events",
+                column: "movie_id");
+
+            migrationBuilder.CreateIndex(
                 name: "ix_events_venue_id_show_time",
                 table: "events",
                 columns: new[] { "venue_id", "show_time" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "ix_movies_title",
+                table: "movies",
+                column: "title",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -185,6 +219,9 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "venue_seats");
+
+            migrationBuilder.DropTable(
+                name: "movies");
 
             migrationBuilder.DropTable(
                 name: "venues");

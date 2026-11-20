@@ -79,11 +79,9 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("name");
+                    b.Property<int>("MovieId")
+                        .HasColumnType("integer")
+                        .HasColumnName("movie_id");
 
                     b.Property<DateTime>("ShowTime")
                         .HasColumnType("timestamp with time zone")
@@ -96,11 +94,58 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_events");
 
+                    b.HasIndex("MovieId")
+                        .HasDatabaseName("ix_events_movie_id");
+
                     b.HasIndex("VenueId", "ShowTime")
                         .IsUnique()
                         .HasDatabaseName("ix_events_venue_id_show_time");
 
                     b.ToTable("events", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.Movie", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AgeRating")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("age_rating");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("integer")
+                        .HasColumnName("duration_minutes");
+
+                    b.Property<string>("PosterUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("poster_url");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
+
+                    b.HasKey("Id")
+                        .HasName("pk_movies");
+
+                    b.HasIndex("Title")
+                        .IsUnique()
+                        .HasDatabaseName("ix_movies_title");
+
+                    b.ToTable("movies", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_movies_duration_positive", "duration_minutes > 0");
+                        });
                 });
 
             modelBuilder.Entity("Core.Entities.Seat", b =>
@@ -237,12 +282,21 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.Event", b =>
                 {
+                    b.HasOne("Core.Entities.Movie", "Movie")
+                        .WithMany()
+                        .HasForeignKey("MovieId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_events_movies_movie_id");
+
                     b.HasOne("Core.Entities.Venue", "Venue")
                         .WithMany()
                         .HasForeignKey("VenueId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_events_venues_venue_id");
+
+                    b.Navigation("Movie");
 
                     b.Navigation("Venue");
                 });

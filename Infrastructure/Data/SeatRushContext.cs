@@ -7,6 +7,7 @@ public class SeatRushContext(DbContextOptions<SeatRushContext> options) : DbCont
 {
     public DbSet<Venue> Venues => Set<Venue>();
     public DbSet<VenueSeat> VenueSeats => Set<VenueSeat>();
+    public DbSet<Movie> Movies => Set<Movie>();
     public DbSet<Event> Events => Set<Event>();
     public DbSet<Seat> Seats => Set<Seat>();
     public DbSet<Booking> Bookings => Set<Booking>();

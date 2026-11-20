@@ -1,0 +1,54 @@
+<section class="container page">
+  <a routerLink="/" class="back">← All movies</a>
+
+  @if (loading()) {
+    <p class="state">Loading seats…</p>
+  } @else if (error() || !event()) {
+    <p class="state">Couldn't load this showing.</p>
+  } @else {
+    @let ev = event()!;
+
+    <header class="info">
+      <img class="info__poster" [src]="ev.posterUrl" [alt]="ev.movieTitle + ' poster'" />
+      <div>
+        <h1 class="info__title">{{ ev.movieTitle }}</h1>
+        <p class="info__meta">
+          <span class="pill">{{ ev.ageRating }}</span>
+          {{ ev.showTime | date: 'EEEE d MMM · HH:mm' }} · {{ ev.venue }}
+        </p>
+        <p class="info__avail">
+          <strong>{{ available() }}</strong> of {{ ev.totalSeats }} seats available
+        </p>
+      </div>
+    </header>
+
+    <div class="hall" [style.--cols]="maxCols()">
+      <div class="screen">Screen</div>
+
+      <div class="seats" role="grid" [attr.aria-label]="'Seat map for ' + ev.venue">
+        @for (row of rows(); track row.label) {
+          <div class="row" role="row">
+            <span class="row__label">{{ row.label }}</span>
+            @for (seat of row.seats; track seat.id) {
+              <span
+                class="seat"
+                role="gridcell"
+                [class.seat--held]="seat.status === 'Held'"
+                [class.seat--booked]="seat.status === 'Booked'"
+                [title]="row.label + seat.number + ' · ' + seat.status"
+                [attr.aria-label]="'Row ' + row.label + ' seat ' + seat.number + ', ' + seat.status"
+              ></span>
+            }
+            <span class="row__label">{{ row.label }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <ul class="legend">
+      <li><span class="seat"></span> Available</li>
+      <li><span class="seat seat--held"></span> Held</li>
+      <li><span class="seat seat--booked"></span> Booked</li>
+    </ul>
+  }
+</section>

@@ -1,28 +1,25 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { map, Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Movie, ShowingEvent } from '../../shared/models/event';
+import { Movie } from '../../shared/models/event';
+import { EventDetails, Seat } from '../../shared/models/seat';
 
 @Injectable({ providedIn: 'root' })
 export class EventService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = environment.apiUrl;
 
-  getEvents(): Observable<ShowingEvent[]> {
-    return this.http.get<ShowingEvent[]>(this.baseUrl + 'events');
+  /** Movies with upcoming showings, already grouped and sorted by the API. */
+  getMovies(): Observable<Movie[]> {
+    return this.http.get<Movie[]>(this.baseUrl + 'movies');
   }
 
-  /** Groups showings by movie name. The API already returns them soonest first. */
-  getMovies(): Observable<Movie[]> {
-    return this.getEvents().pipe(
-      map((events) => {
-        const byName = new Map<string, ShowingEvent[]>();
-        for (const e of events) {
-          byName.set(e.name, [...(byName.get(e.name) ?? []), e]);
-        }
-        return [...byName].map(([name, showings]) => ({ name, showings }));
-      }),
-    );
+  getEvent(eventId: number): Observable<EventDetails> {
+    return this.http.get<EventDetails>(`${this.baseUrl}events/${eventId}`);
+  }
+
+  getSeatMap(eventId: number): Observable<Seat[]> {
+    return this.http.get<Seat[]>(`${this.baseUrl}events/${eventId}/seats`);
   }
 }

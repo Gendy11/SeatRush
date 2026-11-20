@@ -70,7 +70,7 @@ Cinema-style flash-sale ticketing. Venues (screens) have fixed seat layouts; eve
 - **NFR2** Idempotent checkout: retries never double-book.
 
 ### Performance (proven locally with k6)
-- **NFR3** 10,000 virtual users competing for 1,000 seats → exactly 1,000 booked, 0 oversold.
+- **NFR3** 10,000 virtual users competing for one IMAX showing (500 seats) → exactly 500 booked, 0 oversold.
 - **NFR4** Hold request p95 < 200 ms under load.
 - **NFR5** Seat status change reaches viewers in < 1 s.
 

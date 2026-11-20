@@ -1,5 +1,34 @@
 <header class="header">
   <div class="container header__inner">
-    <a routerLink="/" class="logo">Seat<span>Rush</span></a>
+    <a routerLink="/" class="brand">
+      <svg class="brand__icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V7z"
+        />
+        <path class="brand__perf" d="M14 6v2M14 11v2M14 16v1" />
+      </svg>
+      <span class="brand__text">
+        <span class="brand__name">Seat<span>Rush</span></span>
+        <span class="brand__tagline">Flash-sale cinema tickets</span>
+      </span>
+    </a>
+
+    <nav class="nav" aria-label="Main">
+      <a
+        routerLink="/"
+        routerLinkActive="nav__link--active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="nav__link"
+        >Now Showing</a
+      >
+      <span class="nav__link nav__link--disabled" title="Available once booking is built">
+        My Tickets <small>Soon</small>
+      </span>
+    </nav>
+
+    <span class="live" title="Tickets are on sale">
+      <span class="live__dot"></span>
+      Sales live
+    </span>
   </div>
 </header>

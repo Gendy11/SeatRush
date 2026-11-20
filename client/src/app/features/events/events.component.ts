@@ -1,11 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { EventService } from '../../core/services/event.service';
 import { Movie } from '../../shared/models/event';
 
 @Component({
   selector: 'app-events',
-  imports: [DatePipe],
+  imports: [DatePipe, RouterLink],
   templateUrl: './events.component.html',
   styleUrl: './events.component.scss',
 })
@@ -15,6 +16,16 @@ export class EventsComponent implements OnInit {
   protected readonly movies = signal<Movie[]>([]);
   protected readonly loading = signal(true);
   protected readonly error = signal(false);
+
+  /** Hero: the movie with the soonest showing (the API orders movies that way). */
+  protected readonly featured = computed(() => this.movies()[0]);
+  protected readonly showingCount = computed(() =>
+    this.movies().reduce((n, m) => n + m.showings.length, 0),
+  );
+
+  protected scrollToMovie(id: number): void {
+    document.getElementById(`movie-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 
   ngOnInit(): void {
     this.eventService.getMovies().subscribe({
@@ -29,11 +40,10 @@ export class EventsComponent implements OnInit {
     });
   }
 
-  /** Placeholder poster until events have real artwork: a stable gradient derived from the title. */
-  protected posterGradient(name: string): string {
-    let hash = 0;
-    for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-    const hue = hash % 360;
-    return `linear-gradient(160deg, hsl(${hue} 60% 38%) 0%, hsl(${(hue + 40) % 360} 55% 18%) 60%, #0b0b0d 100%)`;
+  /** 128 -> "2h 8m" */
+  protected formatDuration(minutes: number): string {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return h ? `${h}h ${m}m` : `${m}m`;
   }
 }

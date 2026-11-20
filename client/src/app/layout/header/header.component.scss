@@ -2,24 +2,158 @@
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(11, 11, 13, 0.92);
-  backdrop-filter: blur(8px);
+  background: rgba(11, 11, 13, 0.75);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
 }
 
 .header__inner {
-  height: 64px;
+  height: 72px;
   display: flex;
   align-items: center;
+  gap: 32px;
 }
 
-.logo {
-  font-size: 1.5rem;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand__icon {
+  width: 34px;
+  height: 34px;
+  fill: var(--accent);
+  transform: rotate(-12deg);
+  filter: drop-shadow(0 0 10px rgba(245, 197, 24, 0.35));
+}
+
+.brand__perf {
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.brand__name {
+  font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-transform: uppercase;
 
   span {
     color: var(--accent);
+  }
+}
+
+.brand__tagline {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nav {
+  display: flex;
+  gap: 24px;
+  margin-right: auto;
+}
+
+.nav__link {
+  position: relative;
+  padding: 6px 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+
+  &:hover:not(.nav__link--disabled) {
+    color: var(--text);
+  }
+
+  small {
+    margin-left: 4px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    font-size: 0.6rem;
+    letter-spacing: 0.04em;
+  }
+}
+
+.nav__link--active {
+  color: var(--text);
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+}
+
+.nav__link--disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: rgba(34, 197, 94, 0.08);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.live__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--live);
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+  animation: pulse 1.8s ease-out infinite;
+}
+
+@keyframes pulse {
+  70% {
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live__dot {
+    animation: none;
+  }
+}
+
+/* Phones: keep brand + live pill, hide tagline and secondary nav. */
+@media (max-width: 640px) {
+  .header__inner {
+    gap: 16px;
+  }
+
+  .brand__tagline,
+  .nav__link--disabled {
+    display: none;
   }
 }

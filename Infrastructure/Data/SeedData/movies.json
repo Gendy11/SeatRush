@@ -1,0 +1,5 @@
+[
+  { "title": "Neon Harbor", "posterUrl": "posters/neon-harbor.jpg", "ageRating": "12+", "durationMinutes": 128 },
+  { "title": "The Last Lighthouse", "posterUrl": "posters/the-last-lighthouse.jpg", "ageRating": "PG", "durationMinutes": 104 },
+  { "title": "Paper Satellites", "posterUrl": "posters/paper-satellites.jpg", "ageRating": "16+", "durationMinutes": 117 }
+]
