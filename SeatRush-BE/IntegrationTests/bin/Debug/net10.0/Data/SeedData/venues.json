@@ -1,0 +1,5 @@
+[
+  { "name": "Screen 1", "rows": 8, "seatsPerRow": 12 },
+  { "name": "Screen 2", "rows": 10, "seatsPerRow": 15 },
+  { "name": "IMAX", "rows": 20, "seatsPerRow": 50 }
+]
