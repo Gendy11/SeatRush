@@ -7,7 +7,7 @@
   },
   "newProjectRoot": "projects",
   "projects": {
-    "SeatRush-FE": {
+    "client": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -68,10 +68,10 @@
           "builder": "@angular/build:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "SeatRush-FE:build:production"
+              "buildTarget": "client:build:production"
             },
             "development": {
-              "buildTarget": "SeatRush-FE:build:development"
+              "buildTarget": "client:build:development"
             }
           },
           "defaultConfiguration": "development"
