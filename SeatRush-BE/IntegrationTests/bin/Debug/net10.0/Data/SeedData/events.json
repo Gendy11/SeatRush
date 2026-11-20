@@ -1,8 +1,0 @@
-[
-  { "name": "Neon Harbor", "venue": "IMAX", "daysFromNow": 1, "time": "19:00" },
-  { "name": "Neon Harbor", "venue": "IMAX", "daysFromNow": 1, "time": "22:30" },
-  { "name": "The Last Lighthouse", "venue": "Screen 1", "daysFromNow": 1, "time": "18:00" },
-  { "name": "The Last Lighthouse", "venue": "Screen 1", "daysFromNow": 1, "time": "20:30" },
-  { "name": "Paper Satellites", "venue": "Screen 2", "daysFromNow": 1, "time": "17:15" },
-  { "name": "Paper Satellites", "venue": "Screen 2", "daysFromNow": 2, "time": "21:00" }
-]
