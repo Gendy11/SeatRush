@@ -3,9 +3,16 @@
   padding-bottom: 64px;
 }
 
+.page-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
 .back {
   display: inline-block;
-  margin-bottom: 24px;
   font-size: 0.85rem;
   color: var(--text-muted);
 
@@ -67,6 +74,81 @@
   font-weight: 700;
 }
 
+/* 3D / 2D switch, right side of the showing info. */
+.info__text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 3D / 2D switch, top right. */
+.view-toggle {
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+
+  button {
+    padding: 6px 14px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .active {
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+}
+
+/* "3D needs a bigger screen" message, shown on phones when 3D is picked. */
+.three-d-note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 24px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: rgba(22, 22, 26, 0.6);
+  text-align: center;
+
+  h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 2rem;
+    letter-spacing: 0.02em;
+  }
+
+  p {
+    max-width: 34ch;
+    margin: 0 0 6px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+}
+
+/* Holds whichever hall is shown, plus the "time's up" overlay on top of it. */
+.stage-wrap {
+  position: relative;
+}
+
+.hall3d-placeholder {
+  display: grid;
+  place-items: center;
+  height: clamp(360px, 64vh, 720px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #07070a;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
 /* ---------- Hall ---------- */
 .hall {
   position: relative; /* for the "time's up" overlay */
@@ -76,6 +158,13 @@
   border-radius: 16px;
   background: rgba(22, 22, 26, 0.6);
   overflow-x: auto; /* wide halls (IMAX: 50 per row) scroll inside the panel on small screens */
+}
+
+/* Screen + seats. At least as wide as the hall (small halls stay centred), at most as wide as the widest row. */
+.stage {
+  width: max-content;
+  min-width: 100%;
+  margin: 0 auto;
 }
 
 /* Curved, glowing screen at the front of the hall. */
@@ -125,8 +214,8 @@
   height: var(--seat, 18px);
   padding: 0;
   border-radius: 5px 5px 3px 3px;
-  background: #3a3a44;
-  border: 1px solid #4a4a55;
+  background: #a1a1aa;
+  border: 1px solid #c4c4cc;
   font: inherit;
   transition: transform 0.1s ease, background 0.15s ease;
 }
@@ -135,7 +224,7 @@ button.seat {
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background: #565663;
+    background: #e4e4e7;
     transform: translateY(-1px);
   }
 
@@ -164,9 +253,8 @@ button.seat--mine:hover:not(:disabled) {
 }
 
 .seat--booked {
-  background: #1a1a1f;
-  border-color: #26262c;
-  opacity: 0.6;
+  background: #34343b;
+  border-color: #46464e;
 }
 
 .seat--pending {
@@ -257,23 +345,10 @@ button.seat--mine:hover:not(:disabled) {
   font-weight: 700;
 }
 
-.btn {
-  padding: 10px 20px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-text);
-  font: inherit;
-  font-weight: 700;
-  font-size: 0.8rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
+.total {
+  font-weight: 800;
+  font-size: 1.1rem;
+  white-space: nowrap;
 }
 
 .toast {
@@ -311,15 +386,60 @@ button.seat--mine:hover:not(:disabled) {
   }
 }
 
+/* Phones */
 @media (max-width: 640px) {
   .session {
     flex-wrap: wrap;
-    top: 72px;
+    top: 60px; /* phone header height */
+    gap: 10px 16px;
+    padding: 10px 12px;
   }
 
   .selection {
     order: 3;
     flex-basis: 100%;
+  }
+
+  /* Push [total] Checkout to the right edge, whether or not the total is shown. */
+  .session .btn {
+    margin-left: auto;
+    padding: 10px 18px;
+  }
+
+  .total {
+    margin-left: auto;
+  }
+
+  .total + .btn {
+    margin-left: 0;
+  }
+
+  .info {
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .info__poster {
+    width: 64px;
+  }
+
+  .info__meta {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    font-size: 0.85rem;
+  }
+
+  .info__avail {
+    font-size: 0.85rem;
+  }
+
+  /* Wide halls (IMAX: 25 per row) scroll sideways inside this panel, never the whole page. */
+  .hall {
+    padding: 28px 12px;
+  }
+
+  .screen {
+    margin-bottom: 28px;
   }
 }
 
@@ -329,8 +449,9 @@ button.seat--mine:hover:not(:disabled) {
   margin: 20px 0 0;
   padding: 0;
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 24px;
+  gap: 10px 24px;
   font-size: 0.8rem;
   color: var(--text-muted);
 

@@ -6,14 +6,18 @@ public class Venue : BaseEntity
     public required string Name { get; set; }
     public int Capacity { get; set; }
 
+    /// <summary>Price of one ticket for any showing in this venue (EGP).</summary>
+    public decimal TicketPrice { get; set; }
+
     public List<VenueSeat> Seats { get; set; } = [];
 
-    public static Venue WithLayout(string name, int rows, int seatsPerRow)
+    public static Venue WithLayout(string name, int rows, int seatsPerRow, decimal ticketPrice)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(rows, 1);
         ArgumentOutOfRangeException.ThrowIfLessThan(seatsPerRow, 1);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ticketPrice);
 
-        var venue = new Venue { Name = name, Capacity = rows * seatsPerRow };
+        var venue = new Venue { Name = name, Capacity = rows * seatsPerRow, TicketPrice = ticketPrice };
 
         for (var r = 0; r < rows; r++)
         {

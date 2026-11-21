@@ -1,97 +1,181 @@
 <section class="container page">
-  <a routerLink="/" class="back">← All movies</a>
+  <div class="page-top">
+    <a routerLink="/" class="back">← All movies</a>
 
-  @if (loading()) {
+    @if (!store.loading() && !store.error()) {
+      <div class="view-toggle" role="group" aria-label="Seat map view">
+        <button
+          type="button"
+          [class.active]="mode() === '3d'"
+          [attr.aria-pressed]="mode() === '3d'"
+          (click)="mode.set('3d')"
+        >
+          3D
+        </button>
+        <button
+          type="button"
+          [class.active]="mode() === '2d'"
+          [attr.aria-pressed]="mode() === '2d'"
+          (click)="mode.set('2d')"
+        >
+          2D
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (store.loading()) {
     <p class="state">Loading seats…</p>
-  } @else if (error() || !event()) {
+  } @else if (store.error() || !store.event()) {
     <p class="state">Couldn't load this showing.</p>
   } @else {
-    @let ev = event()!;
+    @let ev = store.event()!;
+    @let mySeats = store.mySeats();
+    @let expired = store.expired();
 
-    <!-- Session bar: countdown + selection, sticks below the header while scrolling. -->
-    <div class="session" [class.session--urgent]="urgent()" [class.session--expired]="expired()">
-      <div class="timer" role="timer" aria-live="off">
-        <span class="timer__label">{{ expired() ? "Time's up" : 'Time left' }}</span>
-        <span class="timer__value">{{ countdown() }}</span>
-      </div>
+    <!-- The 3D hall has its own overlay (title, timer, seats, checkout); everything else uses this page chrome. -->
+    @if (!show3d()) {
+      <!-- Session bar: countdown + selection, sticks below the header while scrolling. -->
+      <div
+        class="session"
+        [class.session--urgent]="store.urgent()"
+        [class.session--expired]="expired"
+      >
+        <div class="timer" role="timer" aria-live="off">
+          <span class="timer__label">{{ expired ? "Time's up" : 'Time left' }}</span>
+          <span class="timer__value">{{ store.countdown() }}</span>
+        </div>
 
-      <div class="selection">
-        @if (mySeats().length) {
-          <span class="selection__count">{{ mySeats().length }} seat{{ mySeats().length > 1 ? 's' : '' }}</span>
-          <span class="selection__list">
-            @for (s of mySeats(); track s.id) {
-              <span class="chip">{{ s.row }}{{ s.number }}</span>
-            }
-          </span>
-        } @else {
-          <span class="selection__hint">Pick your seats: they're yours until the timer ends.</span>
+        <div class="selection">
+          @if (mySeats.length) {
+            <span class="selection__count"
+              >{{ mySeats.length }} seat{{ mySeats.length > 1 ? 's' : '' }}</span
+            >
+            <span class="selection__list">
+              @for (s of mySeats; track s.id) {
+                <span class="chip">{{ s.row }}{{ s.number }}</span>
+              }
+            </span>
+          } @else {
+            <span class="selection__hint">Pick your seats</span>
+          }
+        </div>
+
+        @if (mySeats.length) {
+          <span class="total">{{ mySeats.length * ev.ticketPrice | price }}</span>
         }
+        <a
+          class="btn"
+          [class.btn--disabled]="!mySeats.length || expired"
+          [attr.aria-disabled]="!mySeats.length || expired"
+          [routerLink]="mySeats.length && !expired ? ['/events', ev.id, 'checkout'] : null"
+          >Checkout</a
+        >
       </div>
 
-      <button type="button" class="btn" disabled title="Checkout comes next">Pay</button>
-    </div>
+      @if (store.message()) {
+        <p class="toast" role="status">{{ store.message() }}</p>
+      }
 
-    @if (message()) {
-      <p class="toast" role="status">{{ message() }}</p>
+      <header class="info">
+        <img class="info__poster" [src]="ev.posterUrl" [alt]="ev.movieTitle + ' poster'" />
+        <div class="info__text">
+          <h1 class="info__title">{{ ev.movieTitle }}</h1>
+          <p class="info__meta">
+            <span class="pill">{{ ev.ageRating }}</span>
+            {{ ev.showTime | date: 'EEEE d MMM · HH:mm' }} · {{ ev.venue }}
+          </p>
+          <p class="info__avail">
+            <strong>{{ store.available() }}</strong> of {{ ev.totalSeats }} seats available ·
+            {{ ev.ticketPrice | price }} per seat
+          </p>
+        </div>
+      </header>
     }
 
-    <header class="info">
-      <img class="info__poster" [src]="ev.posterUrl" [alt]="ev.movieTitle + ' poster'" />
-      <div>
-        <h1 class="info__title">{{ ev.movieTitle }}</h1>
-        <p class="info__meta">
-          <span class="pill">{{ ev.ageRating }}</span>
-          {{ ev.showTime | date: 'EEEE d MMM · HH:mm' }} · {{ ev.venue }}
-        </p>
-        <p class="info__avail">
-          <strong>{{ available() }}</strong> of {{ ev.totalSeats }} seats available
-        </p>
-      </div>
-    </header>
-
-    <div class="hall" [style.--cols]="maxCols()">
-      <div class="screen">Screen</div>
-
-      <div class="seats" [attr.aria-label]="'Seat map for ' + ev.venue">
-        @for (row of rows(); track row.label) {
-          <div class="row">
-            <span class="row__label">{{ row.label }}</span>
-            @for (seat of row.seats; track seat.id) {
-              @let mine = seat.isMine;
-              @let free = seat.status === 'Available';
-              <button
-                type="button"
-                class="seat"
-                [class.seat--mine]="mine"
-                [class.seat--taken]="seat.status === 'Held' && !seat.isMine"
-                [class.seat--booked]="seat.status === 'Booked'"
-                [class.seat--pending]="isPending(seat)"
-                [disabled]="expired() || (!mine && !free)"
-                [attr.aria-pressed]="mine"
-                [title]="row.label + seat.number + (mine ? ' · yours (click to release)' : free ? '' : ' · unavailable')"
-                [attr.aria-label]="'Row ' + row.label + ' seat ' + seat.number + (mine ? ', selected' : free ? ', available' : ', unavailable')"
-                (click)="toggle(seat)"
-              ></button>
-            }
-            <span class="row__label">{{ row.label }}</span>
-          </div>
+    <div class="stage-wrap">
+      @if (show3d()) {
+        <!-- three.js is ~400 kB: @defer puts it in a separate chunk, loaded only when the 3D hall is shown. -->
+        @defer (on immediate) {
+          <app-hall-3d />
+        } @placeholder (minimum 200ms) {
+          <div class="hall3d-placeholder">Loading 3D hall…</div>
         }
-      </div>
+      } @else if (mode() === '3d') {
+        <!-- 3D picked on a phone (or a browser without WebGL): explain instead of showing a cramped hall. -->
+        <div class="three-d-note">
+          <h2>3D hall</h2>
+          <p>
+            @if (webgl) {
+              The 3D hall is made for bigger screens. Open SeatRush on a tablet or laptop to walk into the
+              cinema in 3D.
+            } @else {
+              Your browser can't display the 3D hall.
+            }
+          </p>
+          <button type="button" class="btn" (click)="mode.set('2d')">Use the seat map</button>
+        </div>
+      } @else {
+        <div #hall class="hall" [style.--cols]="store.maxCols()">
+          <!-- Stage = screen + seats, as wide as the widest row, so the screen stays centred over the seats when the hall scrolls. -->
+          <div class="stage">
+            <div class="screen">Screen</div>
 
-      @if (expired()) {
+            <div class="seats" [attr.aria-label]="'Seat map for ' + ev.venue">
+              @for (row of store.rows(); track row.label) {
+                <div class="row">
+                  <span class="row__label">{{ row.label }}</span>
+                  @for (seat of row.seats; track seat.id) {
+                    @let mine = seat.isMine;
+                    @let free = seat.status === 'Available';
+                    <button
+                      type="button"
+                      class="seat"
+                      [class.seat--mine]="mine"
+                      [class.seat--taken]="seat.status === 'Held' && !seat.isMine"
+                      [class.seat--booked]="seat.status === 'Booked'"
+                      [class.seat--pending]="store.isPending(seat)"
+                      [disabled]="expired || (!mine && !free)"
+                      [attr.aria-pressed]="mine"
+                      [title]="
+                        row.label +
+                        seat.number +
+                        (mine ? ' · yours (click to release)' : free ? '' : ' · unavailable')
+                      "
+                      [attr.aria-label]="
+                        'Row ' +
+                        row.label +
+                        ' seat ' +
+                        seat.number +
+                        (mine ? ', selected' : free ? ', available' : ', unavailable')
+                      "
+                      (click)="store.toggle(seat)"
+                    ></button>
+                  }
+                  <span class="row__label">{{ row.label }}</span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      @if (expired) {
         <div class="expired">
           <h2>Time's up</h2>
           <p>Your seats were released so others can book them.</p>
-          <button type="button" class="btn" (click)="restart()">Start again (7:00)</button>
+          <button type="button" class="btn" (click)="store.restart()">Start again (7:00)</button>
         </div>
       }
     </div>
 
-    <ul class="legend">
-      <li><span class="seat"></span> Available</li>
-      <li><span class="seat seat--mine"></span> Your seats</li>
-      <li><span class="seat seat--taken"></span> Held by others</li>
-      <li><span class="seat seat--booked"></span> Booked</li>
-    </ul>
+    @if (mode() === '2d') {
+      <ul class="legend">
+        <li><span class="seat"></span> Available</li>
+        <li><span class="seat seat--mine"></span> Your seats</li>
+        <li><span class="seat seat--taken"></span> Held by others</li>
+        <li><span class="seat seat--booked"></span> Booked</li>
+      </ul>
+    }
   }
 </section>

@@ -33,11 +33,15 @@ export interface EventDetails {
   id: number;
   movieTitle: string;
   posterUrl: string;
+  /** Landscape still shown on the 3D hall's screen. */
+  backdropUrl: string;
   ageRating: string;
   durationMinutes: number;
   venue: string;
   showTime: string;
   totalSeats: number;
+  /** Price of one ticket (EGP). */
+  ticketPrice: number;
 }
 
 /** The user's 7-minute booking window for one showing. Times are UTC ISO strings. */

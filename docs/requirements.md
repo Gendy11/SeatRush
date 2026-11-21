@@ -39,10 +39,10 @@ Cinema-style flash-sale ticketing. Venues (screens) have fixed seat layouts; mov
 ### 5. Checkout
 | ID | Requirement | Status |
 |----|-------------|--------|
-| FR15 | Check out held seats with a fake payment (random delay, ~10% failure). | |
-| FR16 | Payment success → seats Booked. Failure or timeout → seats released. | |
-| FR17 | Checkout requires an `Idempotency-Key` header; a duplicate request returns the original result. | |
-| FR18 | View my bookings. | |
+| FR15 | Checkout page (within the 7-minute session): receipt of the held seats with per-seat price and total. Ticket price is set per venue: EGP 200 for standard screens, EGP 250 for IMAX. Prices are shown in EGP. | Done |
+| FR16 | Payment method: Pay at counter (the only option, selected by default). Creating the booking marks the seats Booked, releases the holds, ends the session and returns a booking reference (e.g. `SR-7K3Q9P2M`) to show at the counter. | Done |
+| FR17 | Creating a booking requires an `Idempotency-Key` header (scoped per user); a retried request returns the original booking. | Done |
+| FR18 | "My Tickets" page lists the user's bookings, newest first. | Done |
 
 ### 6. Real-time
 | ID | Requirement | Status |
@@ -63,7 +63,7 @@ Cinema-style flash-sale ticketing. Venues (screens) have fixed seat layouts; mov
 ### 9. Identity
 | ID | Requirement | Status |
 |----|-------------|--------|
-| FR23 | Anonymous session: a user gets an ID without signing up (minimal JWT / session ID). | |
+| FR23 | Anonymous guest identity, no signup/login: `POST /api/auth/token` issues a 15-min access token (JWT, kept in memory by the client) and a 30-day refresh token (HttpOnly, SameSite=Strict cookie, path `/api/auth`). Refresh tokens rotate on every use, are stored only as SHA-256 hashes in Redis, and replaying a used one revokes the whole token family. | Done |
 
 ## Non-functional requirements
 
@@ -95,9 +95,12 @@ Cinema-style flash-sale ticketing. Venues (screens) have fixed seat layouts; mov
 ## Conventions
 - All times are stored and returned in UTC (`timestamptz`); the frontend converts for display.
 
+- The frontend and API must be served from the same site in production (e.g. Angular from the API's `wwwroot`), otherwise the SameSite refresh cookie isn't sent. The signing key comes from the `Auth__SigningKey` environment variable.
+
 ## Data ownership
 | Data | Store |
 |------|-------|
-| Venues, movies, showings, booked seats | Postgres (source of truth for sales) |
+| Venues (with ticket price), movies, showings, booked seats, bookings | Postgres (source of truth for sales) |
 | Booking sessions (7-min timer) | Redis, TTL |
 | Seat holds | Redis, TTL; claimed with conditional transactions (`SET NX` + index), released only by the owner |
+| Refresh tokens | Redis, TTL; SHA-256 hash only, rotated on use, family revoked on replay |

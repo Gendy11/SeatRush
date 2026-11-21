@@ -10,6 +10,7 @@ public class MovieConfiguration : IEntityTypeConfiguration<Movie>
     {
         builder.Property(m => m.Title).HasMaxLength(200);
         builder.Property(m => m.PosterUrl).HasMaxLength(500);
+        builder.Property(m => m.BackdropUrl).HasMaxLength(500);
         builder.Property(m => m.AgeRating).HasMaxLength(8);
 
         builder.HasIndex(m => m.Title).IsUnique();

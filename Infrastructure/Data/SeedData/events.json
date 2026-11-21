@@ -1,8 +1,10 @@
 [
-  { "movie": "Neon Harbor", "venue": "IMAX", "showTime": "2028-06-15T19:00:00Z" },
-  { "movie": "Neon Harbor", "venue": "IMAX", "showTime": "2028-06-15T22:30:00Z" },
-  { "movie": "The Last Lighthouse", "venue": "Screen 1", "showTime": "2028-06-15T18:00:00Z" },
-  { "movie": "The Last Lighthouse", "venue": "Screen 1", "showTime": "2028-06-15T20:30:00Z" },
-  { "movie": "Paper Satellites", "venue": "Screen 2", "showTime": "2028-06-15T17:15:00Z" },
-  { "movie": "Paper Satellites", "venue": "Screen 2", "showTime": "2028-06-16T21:00:00Z" }
+  { "movie": "The Odyssey", "venue": "IMAX", "showTime": "2028-06-15T19:00:00Z" },
+  { "movie": "The Odyssey", "venue": "IMAX", "showTime": "2028-06-15T22:30:00Z" },
+  { "movie": "Avengers: Doomsday", "venue": "Screen 1", "showTime": "2028-06-15T18:00:00Z" },
+  { "movie": "Avengers: Doomsday", "venue": "Screen 1", "showTime": "2028-06-15T20:30:00Z" },
+  { "movie": "Dune: Part Three", "venue": "Screen 2", "showTime": "2028-06-15T17:15:00Z" },
+  { "movie": "Dune: Part Three", "venue": "Screen 2", "showTime": "2028-06-16T21:00:00Z" },
+  { "movie": "Dune: Part Three", "venue": "Screen 3", "showTime": "2028-06-15T19:30:00Z" },
+  { "movie": "Avengers: Doomsday", "venue": "Screen 3", "showTime": "2028-06-16T18:00:00Z" }
 ]

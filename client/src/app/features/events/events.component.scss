@@ -99,27 +99,6 @@
   }
 }
 
-.btn {
-  margin-top: 6px;
-  padding: 12px 22px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-text);
-  font: inherit;
-  font-weight: 700;
-  font-size: 0.85rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-  box-shadow: 0 10px 30px -10px rgba(245, 197, 24, 0.6);
-  transition: transform 0.15s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-  }
-}
-
 @media (max-width: 640px) {
   .hero__inner {
     flex-direction: column;
@@ -236,17 +215,20 @@
 
 .showtimes {
   list-style: none;
-  margin: 0;
+  margin: 0 auto;
   padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex-direction: column;
   gap: 8px;
+  /* One column of equal-width chips per card, whatever the date text is. */
+  width: 100%;
+  max-width: 200px;
 }
 
 .showtime {
   display: grid;
-  grid-template-columns: auto auto;
+  grid-template-columns: 1fr auto; /* date left, time right */
+  width: 100%;
   column-gap: 6px;
   padding: 6px 10px;
   border: 1px solid var(--border);
@@ -284,5 +266,28 @@
 @keyframes pulse {
   50% {
     opacity: 0.5;
+  }
+}
+
+/* Phones: two posters per row; showtime chips stack full width under each card. */
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 12px;
+  }
+
+  .page__head {
+    flex-wrap: wrap;
+    gap: 6px 16px;
+  }
+
+  .showtimes {
+    max-width: none;
+  }
+
+  .badge {
+    min-width: 34px;
+    height: 34px;
+    font-size: 0.7rem;
   }
 }

@@ -1,4 +1,5 @@
 using Core.Entities;
+using Core.Enums;
 using IntegrationTests.Infrastructure;
 
 namespace IntegrationTests;

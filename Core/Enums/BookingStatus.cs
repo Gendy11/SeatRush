@@ -1,8 +1,7 @@
-namespace Core.Entities;
+namespace Core.Enums;
 
 public enum BookingStatus
 {
-    Pending,
-    Confirmed,
-    Failed
+    /// <summary>Seats are booked. With pay-at-counter, payment is taken at the cinema.</summary>
+    Confirmed
 }

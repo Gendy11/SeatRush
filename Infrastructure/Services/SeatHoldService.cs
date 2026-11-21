@@ -1,4 +1,5 @@
 using Core.Entities;
+using Core.Enums;
 using Core.Interfaces;
 using Core.Models;
 using Infrastructure.Data;
@@ -124,6 +125,30 @@ public class SeatHoldService(
     {
         await EnsureSeqAsync(eventId);
         return (long)await _redis.StringGetAsync(RedisKeys.Seq(eventId));
+    }
+
+    public async Task<bool> AreAllHeldByAsync(int eventId, IReadOnlyCollection<int> seatIds, Guid userId)
+    {
+        var holders = await _redis.StringGetAsync(seatIds.Select(id => (RedisKey)RedisKeys.Hold(eventId, id)).ToArray());
+        var me = userId.ToString("N");
+        return holders.All(h => h == me);
+    }
+
+    public async Task MarkBookedAsync(int eventId, IReadOnlyCollection<int> seatIds)
+    {
+        await EnsureSeqAsync(eventId);
+
+        // The seats are Booked in Postgres now, which already wins over any hold. Removing the holds and
+        // bumping the counter is cleanup + live notification, so no condition is needed here.
+        var tx = _redis.CreateTransaction();
+        foreach (var id in seatIds)
+            _ = tx.KeyDeleteAsync(RedisKeys.Hold(eventId, id));
+        _ = tx.SortedSetRemoveAsync(RedisKeys.HoldIndex(eventId), seatIds.Select(id => (RedisValue)id).ToArray());
+        var seqs = seatIds.Select(id => (SeatId: id, Seq: tx.StringIncrementAsync(RedisKeys.Seq(eventId)))).ToList();
+        await tx.ExecuteAsync();
+
+        foreach (var (seatId, seq) in seqs)
+            await notifier.SeatChangedAsync(new SeatChange(eventId, seatId, SeatStatus.Booked, null, await seq));
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using Core.Entities;
+using Core.Enums;
 using Core.Models;
 using IntegrationTests.Infrastructure;
 using Microsoft.EntityFrameworkCore;

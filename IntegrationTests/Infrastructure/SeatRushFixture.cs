@@ -2,6 +2,7 @@ using Core.Entities;
 using Infrastructure.Data;
 using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using Testcontainers.PostgreSql;
@@ -59,14 +60,25 @@ public class SeatRushFixture : IAsyncLifetime
 
     public SeatService NewSeatService() => new(NewDbContext(), NewHoldService());
 
+    public BookingService NewBookingService() =>
+        new(NewDbContext(), NewHoldService(), NewSessionService(), TimeProvider.System, NullLogger<BookingService>.Instance);
+
+    /// <summary>Starts a session for the user and holds the given seats.</summary>
+    public async Task HoldSeatsAsync(int eventId, Guid userId, params int[] seatIds)
+    {
+        await NewSessionService().GetOrStartAsync(eventId, userId);
+        foreach (var id in seatIds)
+            await NewHoldService().HoldAsync(id, userId);
+    }
+
     /// <summary>Creates a fresh showing (own venue + movie) and returns its id and seat ids.</summary>
     public async Task<(int EventId, int[] SeatIds)> CreateShowingAsync(int rows = 2, int seatsPerRow = 5)
     {
         await using var db = NewDbContext();
         var suffix = Guid.NewGuid().ToString("N")[..8];
 
-        var venue = Venue.WithLayout($"Venue {suffix}", rows, seatsPerRow);
-        var movie = new Movie { Title = $"Movie {suffix}", PosterUrl = "posters/x.jpg", AgeRating = "PG", DurationMinutes = 100 };
+        var venue = Venue.WithLayout($"Venue {suffix}", rows, seatsPerRow, ticketPrice: 200m);
+        var movie = new Movie { Title = $"Movie {suffix}", PosterUrl = "posters/x.jpg", BackdropUrl = "backdrops/x.jpg", AgeRating = "PG", DurationMinutes = 100 };
         var ev = Event.For(movie, venue, DateTime.UtcNow.AddDays(1));
 
         db.Events.Add(ev);

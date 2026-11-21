@@ -1,6 +1,6 @@
 @if (featured(); as movie) {
   <section class="hero">
-    <div class="hero__backdrop" [style.background-image]="'url(' + movie.posterUrl + ')'"></div>
+    <div class="hero__backdrop" [style.background-image]="'url(' + movie.backdropUrl + ')'"></div>
 
     <div class="container hero__inner">
       <img class="hero__poster" [src]="movie.posterUrl" [alt]="movie.title + ' poster'" />
@@ -34,7 +34,7 @@
   <div class="page__head">
     <h2 class="page__title">Now Showing</h2>
     @if (!loading() && !error() && movies().length) {
-      <span class="page__count">{{ movies().length }} films · {{ showingCount() }} showings</span>
+      <span class="page__count">{{ movies().length }} Movies · {{ showingCount() }} Showings</span>
     }
   </div>
 

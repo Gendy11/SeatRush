@@ -1,3 +1,5 @@
+using Core.Enums;
+
 namespace Core.Entities;
 
 /// <summary>A showing of a movie in a venue at a show time. Its seat inventory is copied from the venue layout.</summary>

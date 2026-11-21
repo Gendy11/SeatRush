@@ -31,10 +31,13 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
 
         services.Configure<BookingSessionOptions>(config.GetSection(BookingSessionOptions.SectionName));
+        services.Configure<AuthOptions>(config.GetSection(AuthOptions.SectionName));
 
         services.AddScoped<ISeatService, SeatService>();
         services.AddScoped<ISeatHoldService, SeatHoldService>();
         services.AddScoped<IBookingSessionService, BookingSessionService>();
+        services.AddScoped<IBookingService, BookingService>();
+        services.AddSingleton<IAuthTokenService, AuthTokenService>();
 
         return services;
     }

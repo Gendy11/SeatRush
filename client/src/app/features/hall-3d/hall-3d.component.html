@@ -1,0 +1,69 @@
+<div
+  class="hall3d"
+  [class.hall3d--ready]="ready()"
+  [class.hall3d--seated]="seatView()"
+  [class.hall3d--intro]="introRunning()"
+  [style.--poster]="posterColor()"
+>
+  <!-- three.js canvas goes in here -->
+  <div #host class="canvas-host"></div>
+
+  <!-- Film grain + vignette over the canvas; purely visual, never blocks clicks. -->
+  <div class="grain" aria-hidden="true"></div>
+
+  @if (introRunning()) {
+    <button type="button" class="skip" (click)="skipIntro()">Skip intro →</button>
+  }
+
+  <!-- The overlay stays hidden during the intro and fades in afterwards. -->
+  <div class="overlay">
+    @if (!seatView()) {
+      <app-hall-top-bar />
+      <app-hall-legend />
+    }
+
+    @if (tooltip(); as t) {
+      @let s = t.seat;
+      <div class="tooltip" [style.left.px]="t.x" [style.top.px]="t.y">
+        <strong>Row {{ s.row }} · Seat {{ s.number }}</strong>
+        <span>Standard · {{ store.event()?.ticketPrice | price }}</span>
+        <em [class]="'state state--' + (s.isMine ? 'mine' : s.status.toLowerCase())">
+          {{
+            t.pending
+              ? 'Holding…'
+              : s.isMine
+                ? 'Yours: click to release'
+                : s.status === 'Available'
+                  ? 'Click to hold'
+                  : s.status === 'Held'
+                    ? 'Held by someone'
+                    : 'Sold'
+          }}
+        </em>
+      </div>
+    }
+
+    <!-- One spot at the top for both directions: "View from" swaps in place with "Back to hall".
+         Never over the seats. -->
+    <div class="seat-view">
+      @if (seatView()) {
+        @if (focusSeat(); as seat) {
+          <span class="seat-view__label"
+            >View from Row {{ seat.row }} · Seat {{ seat.number }}</span
+          >
+        }
+        <button type="button" class="btn btn--ghost" (click)="backToHall()">← Back to hall</button>
+      } @else if (focusSeat(); as seat) {
+        <button type="button" class="btn" (click)="viewFromSeat()">
+          View from {{ seat.row }}{{ seat.number }}
+        </button>
+      }
+    </div>
+
+    @if (store.message()) {
+      <p class="toast" role="status">{{ store.message() }}</p>
+    }
+
+    <app-hall-bottom-sheet />
+  </div>
+</div>

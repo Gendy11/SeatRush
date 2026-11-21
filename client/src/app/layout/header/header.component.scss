@@ -146,14 +146,43 @@
   }
 }
 
-/* Phones: keep brand + live pill, hide tagline and secondary nav. */
+/* Phones: compact brand + nav, live pill shrinks to just the pulsing dot. */
 @media (max-width: 640px) {
   .header__inner {
-    gap: 16px;
+    height: 60px;
+    gap: 10px;
   }
 
-  .brand__tagline,
-  .nav__link--disabled {
+  .brand {
+    gap: 8px;
+  }
+
+  .brand__icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  .brand__name {
+    font-size: 1.05rem;
+  }
+
+  .brand__tagline {
     display: none;
+  }
+
+  .nav {
+    gap: 12px;
+  }
+
+  .nav__link {
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .live {
+    padding: 8px;
+    font-size: 0;
+    gap: 0;
   }
 }

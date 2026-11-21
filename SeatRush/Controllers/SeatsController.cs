@@ -1,10 +1,12 @@
 using Core.Interfaces;
 using Core.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SeatRush.DTOs;
 
 namespace SeatRush.Controllers;
 
+[Authorize]
 public class SeatsController(ISeatHoldService holds) : BaseApiController
 {
     /// <summary>FR11/FR12: hold the seat until the user's booking session ends.</summary>

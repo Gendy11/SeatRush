@@ -1,0 +1,86 @@
+<section class="container page">
+  <a [routerLink]="['/events', id()]" class="back">← Back to seats</a>
+
+  @if (loading()) {
+    <p class="state">Loading checkout…</p>
+  } @else if (!event()) {
+    <p class="state">{{ error() }}</p>
+  } @else {
+    @let ev = event()!;
+
+    <div class="head">
+      <h1 class="title">Checkout</h1>
+      <div class="timer" [class.timer--expired]="expired()">
+        <span>{{ expired() ? "Time's up" : 'Seats held for' }}</span>
+        <strong>{{ countdown() }}</strong>
+      </div>
+    </div>
+
+    @if (!seats().length || expired()) {
+      <div class="card empty">
+        <p>
+          {{ expired() ? 'Your 7 minutes ran out and the seats were released.' : "You haven't selected any seats." }}
+        </p>
+        <a class="btn" [routerLink]="['/events', ev.id]">Choose seats</a>
+      </div>
+    } @else {
+      <div class="layout">
+        <!-- Receipt -->
+        <article class="card receipt">
+          <header class="receipt__head">
+            <img [src]="ev.posterUrl" [alt]="ev.movieTitle + ' poster'" />
+            <div>
+              <h2>{{ ev.movieTitle }}</h2>
+              <p>{{ ev.showTime | date: 'EEEE d MMM y · HH:mm' }}</p>
+              <p>{{ ev.venue }}</p>
+            </div>
+          </header>
+
+          <table class="lines">
+            <thead>
+              <tr>
+                <th>Seat</th>
+                <th class="num">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (s of seats(); track s.id) {
+                <tr>
+                  <td>Row {{ s.row }} · Seat {{ s.number }}</td>
+                  <td class="num">{{ ev.ticketPrice | price }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Total ({{ seats().length }} ticket{{ seats().length > 1 ? 's' : '' }})</td>
+                <td class="num">{{ total() | price }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </article>
+
+        <!-- Payment -->
+        <aside class="card payment">
+          <h2>Payment method</h2>
+
+          <label class="method method--selected">
+            <input type="radio" name="payment" value="PayAtCounter" checked />
+            <span>
+              <strong>Pay at counter</strong>
+              <small>Pay at the cinema counter before the show. Show your booking reference.</small>
+            </span>
+          </label>
+
+          @if (error()) {
+            <p class="error" role="alert">{{ error() }}</p>
+          }
+
+          <button type="button" class="btn confirm" [disabled]="submitting()" (click)="confirm()">
+            {{ submitting() ? 'Booking…' : 'Create booking · ' + (total() | price) }}
+          </button>
+        </aside>
+      </div>
+    }
+  }
+</section>

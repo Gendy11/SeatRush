@@ -20,6 +20,6 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.logo')?.textContent).toContain('SeatRush');
+    expect(compiled.querySelector('.brand__name')?.textContent).toContain('SeatRush');
   });
 });

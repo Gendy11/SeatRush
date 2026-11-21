@@ -12,4 +12,7 @@ public interface IBookingSessionService
 
     /// <summary>The user's active session, or null if none / expired.</summary>
     Task<BookingSession?> GetActiveAsync(int eventId, Guid userId);
+
+    /// <summary>Ends the session early (after a successful booking).</summary>
+    Task EndAsync(int eventId, Guid userId);
 }

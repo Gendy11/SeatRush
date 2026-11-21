@@ -20,6 +20,15 @@ public static class RedisKeys
     /// </summary>
     public static string HoldIndex(int eventId) => $"holds:{Tag(eventId)}";
 
+    /// <summary>
+    /// Hash for one refresh token, keyed by the token's SHA-256 (the raw token is never stored):
+    /// user, family, usedAt (0 = unused). TTL = refresh token lifetime.
+    /// </summary>
+    public static string RefreshToken(string tokenHash) => $"rt:{tokenHash}";
+
+    /// <summary>String "revoked" once a family (one login chain of rotated tokens) is killed after a replay.</summary>
+    public static string RefreshFamily(string familyId) => $"rtfam:{familyId}";
+
     /// <summary>Integer: per-showing change counter, INCR'd in the same transaction as every seat change.</summary>
     public static string Seq(int eventId) => $"seq:{Tag(eventId)}";
 }

@@ -1,0 +1,46 @@
+<section class="container page">
+  <h1 class="title">My Tickets</h1>
+
+  @if (new()) {
+    <p class="success" role="status">
+      Booking <strong>{{ new() }}</strong> confirmed. Show this reference at the counter to pay.
+    </p>
+  }
+
+  @if (loading()) {
+    <p class="state">Loading your bookings…</p>
+  } @else if (error()) {
+    <p class="state">Couldn't load your bookings.</p>
+  } @else if (!bookings().length) {
+    <div class="empty">
+      <p>You haven't booked anything yet.</p>
+      <a class="btn" routerLink="/">Browse movies</a>
+    </div>
+  } @else {
+    <ul class="list">
+      @for (b of bookings(); track b.id) {
+        <li class="ticket" [class.ticket--new]="b.reference === new()">
+          <img class="ticket__poster" [src]="b.posterUrl" [alt]="b.movieTitle + ' poster'" />
+
+          <div class="ticket__body">
+            <h2>{{ b.movieTitle }}</h2>
+            <p class="ticket__when">{{ b.showTime | date: 'EEEE d MMM y · HH:mm' }} · {{ b.venue }}</p>
+            <div class="seats">
+              @for (s of b.seats; track s.seatId) {
+                <span class="chip">{{ s.row }}{{ s.number }}</span>
+              }
+            </div>
+          </div>
+
+          <!-- Perforated stub, like a paper ticket -->
+          <div class="ticket__stub">
+            <span class="label">Reference</span>
+            <strong class="ref">{{ b.reference }}</strong>
+            <span class="total">{{ b.totalAmount | price }}</span>
+            <span class="badge">Pay at counter</span>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

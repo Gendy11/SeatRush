@@ -19,4 +19,12 @@ public interface ISeatHoldService
 
     /// <summary>The showing's current change counter (see <see cref="SeatMapSnapshot.Seq"/>).</summary>
     Task<long> GetSeqAsync(int eventId);
+
+    /// <summary>True if every seat is currently held by this user.</summary>
+    Task<bool> AreAllHeldByAsync(int eventId, IReadOnlyCollection<int> seatIds, Guid userId);
+
+    /// <summary>
+    /// After a booking commits: removes the seats' holds and pushes "Booked" to live viewers.
+    /// </summary>
+    Task MarkBookedAsync(int eventId, IReadOnlyCollection<int> seatIds);
 }

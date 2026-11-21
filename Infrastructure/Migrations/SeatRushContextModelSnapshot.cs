@@ -35,21 +35,38 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<int>("EventId")
+                        .HasColumnType("integer")
+                        .HasColumnName("event_id");
+
                     b.Property<string>("IdempotencyKey")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("idempotency_key");
 
-                    b.Property<int>("SeatId")
-                        .HasColumnType("integer")
-                        .HasColumnName("seat_id");
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("payment_method");
+
+                    b.Property<string>("Reference")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("reference");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
                         .HasColumnName("status");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("total_amount");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid")
@@ -58,16 +75,56 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id")
                         .HasName("pk_bookings");
 
-                    b.HasIndex("IdempotencyKey")
+                    b.HasIndex("EventId")
+                        .HasDatabaseName("ix_bookings_event_id");
+
+                    b.HasIndex("Reference")
                         .IsUnique()
-                        .HasDatabaseName("ix_bookings_idempotency_key");
+                        .HasDatabaseName("ix_bookings_reference");
+
+                    b.HasIndex("UserId", "CreatedAt")
+                        .HasDatabaseName("ix_bookings_user_id_created_at");
+
+                    b.HasIndex("UserId", "IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("ix_bookings_user_id_idempotency_key");
+
+                    b.ToTable("bookings", (string)null);
+                });
+
+            modelBuilder.Entity("Core.Entities.BookingItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookingId")
+                        .HasColumnType("integer")
+                        .HasColumnName("booking_id");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("price");
+
+                    b.Property<int>("SeatId")
+                        .HasColumnType("integer")
+                        .HasColumnName("seat_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_booking_items");
+
+                    b.HasIndex("BookingId")
+                        .HasDatabaseName("ix_booking_items_booking_id");
 
                     b.HasIndex("SeatId")
                         .IsUnique()
-                        .HasDatabaseName("ux_bookings_one_confirmed_per_seat")
-                        .HasFilter("status = 'Confirmed'");
+                        .HasDatabaseName("ux_booking_items_one_booking_per_seat");
 
-                    b.ToTable("bookings", (string)null);
+                    b.ToTable("booking_items", (string)null);
                 });
 
             modelBuilder.Entity("Core.Entities.Event", b =>
@@ -118,6 +175,12 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("character varying(8)")
                         .HasColumnName("age_rating");
+
+                    b.Property<string>("BackdropUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("backdrop_url");
 
                     b.Property<int>("DurationMinutes")
                         .HasColumnType("integer")
@@ -211,6 +274,11 @@ namespace Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<decimal>("TicketPrice")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("ticket_price");
+
                     b.HasKey("Id")
                         .HasName("pk_venues");
 
@@ -221,6 +289,8 @@ namespace Infrastructure.Migrations
                     b.ToTable("venues", null, t =>
                         {
                             t.HasCheckConstraint("ck_venues_capacity_positive", "capacity > 0");
+
+                            t.HasCheckConstraint("ck_venues_ticket_price_positive", "ticket_price > 0");
                         });
                 });
 
@@ -259,12 +329,33 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.Booking", b =>
                 {
+                    b.HasOne("Core.Entities.Event", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_bookings_events_event_id");
+
+                    b.Navigation("Event");
+                });
+
+            modelBuilder.Entity("Core.Entities.BookingItem", b =>
+                {
+                    b.HasOne("Core.Entities.Booking", "Booking")
+                        .WithMany("Items")
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_booking_items_bookings_booking_id");
+
                     b.HasOne("Core.Entities.Seat", "Seat")
                         .WithMany()
                         .HasForeignKey("SeatId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_bookings_seats_seat_id");
+                        .HasConstraintName("fk_booking_items_seats_seat_id");
+
+                    b.Navigation("Booking");
 
                     b.Navigation("Seat");
                 });
@@ -321,6 +412,11 @@ namespace Infrastructure.Migrations
                         .HasConstraintName("fk_venue_seats_venues_venue_id");
 
                     b.Navigation("Venue");
+                });
+
+            modelBuilder.Entity("Core.Entities.Booking", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Core.Entities.Event", b =>

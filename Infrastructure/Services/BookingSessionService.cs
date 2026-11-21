@@ -36,6 +36,9 @@ public class BookingSessionService(
         throw new InvalidOperationException("Could not start a booking session.");
     }
 
+    public Task EndAsync(int eventId, Guid userId) =>
+        _db.KeyDeleteAsync(RedisKeys.Session(eventId, userId));
+
     public async Task<BookingSession?> GetActiveAsync(int eventId, Guid userId)
     {
         var value = await _db.StringGetAsync(RedisKeys.Session(eventId, userId));

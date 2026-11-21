@@ -31,7 +31,7 @@ public class MoviesController(SeatRushContext db) : BaseApiController
             {
                 var m = g.First().Movie;
                 return new MovieDto(
-                    m.Id, m.Title, m.PosterUrl, m.AgeRating, m.DurationMinutes,
+                    m.Id, m.Title, m.PosterUrl, m.BackdropUrl, m.AgeRating, m.DurationMinutes,
                     g.Select(s => new ShowingDto(s.Id, s.Venue, s.ShowTime)).ToList());
             })
             .ToList();

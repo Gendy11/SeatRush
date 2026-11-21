@@ -1,5 +1,23 @@
 [
-  { "title": "Neon Harbor", "posterUrl": "posters/neon-harbor.jpg", "ageRating": "12+", "durationMinutes": 128 },
-  { "title": "The Last Lighthouse", "posterUrl": "posters/the-last-lighthouse.jpg", "ageRating": "PG", "durationMinutes": 104 },
-  { "title": "Paper Satellites", "posterUrl": "posters/paper-satellites.jpg", "ageRating": "16+", "durationMinutes": 117 }
+  {
+    "title": "The Odyssey",
+    "posterUrl": "movies/the-odyssey-poster.jpg",
+    "backdropUrl": "movies/the-odyssey-backdrop.jpg",
+    "ageRating": "R",
+    "durationMinutes": 173
+  },
+  {
+    "title": "Dune: Part Three",
+    "posterUrl": "movies/dune-part-three-poster.jpg",
+    "backdropUrl": "movies/dune-part-three-backdrop.jpg",
+    "ageRating": "PG-13",
+    "durationMinutes": 150
+  },
+  {
+    "title": "Avengers: Doomsday",
+    "posterUrl": "movies/avengers-doomsday-poster.jpg",
+    "backdropUrl": "movies/avengers-doomsday-backdrop.jpg",
+    "ageRating": "PG-13",
+    "durationMinutes": 165
+  }
 ]

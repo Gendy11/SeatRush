@@ -1,7 +1,10 @@
+using Core.Interfaces;
 using Infrastructure;
 using Infrastructure.Data;
+using Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Core.Interfaces;
+using Microsoft.IdentityModel.Tokens;
 using SeatRush.Middleware;
 using SeatRush.SignalR;
 using StackExchange.Redis;
@@ -24,13 +27,30 @@ builder.Services.AddSignalR()
     });
 builder.Services.AddSingleton<ISeatMapNotifier, SeatMapNotifier>();
 
+// Guest identity: every user-specific endpoint needs a valid access token (signed JWT, 15 min).
+// Validation is stateless: signature + issuer + audience + expiry, no database or Redis lookup per request.
+var authOptions = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>() ?? new AuthOptions();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        o.MapInboundClaims = false; // keep "sub" as "sub"
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidIssuer = authOptions.Issuer,
+            ValidAudience = authOptions.Audience,
+            IssuerSigningKey = authOptions.CreateSigningKey(),
+            ClockSkew = TimeSpan.FromSeconds(30)
+        };
+    });
+builder.Services.AddAuthorization();
+
 // The Angular app is served from a different origin (localhost:4200 locally, Vercel in production).
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
     .WithOrigins(allowedOrigins)
     .AllowAnyHeader()
     .AllowAnyMethod()
-    .AllowCredentials())); // required by the SignalR client
+    .AllowCredentials())); // needed for the refresh-token cookie and the SignalR client
 
 var app = builder.Build();
 
@@ -43,6 +63,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<SeatMapHub>(SeatMapHub.Path);

@@ -1,5 +1,6 @@
 using Core.Interfaces;
 using Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SeatRush.DTOs;
@@ -26,6 +27,7 @@ public class EventsController(SeatRushContext db, ISeatService seats) : BaseApiC
     /// FR10: start (or resume) the user's 7-minute booking session for this showing.
     /// Idempotent: refreshing the page returns the same deadline.
     /// </summary>
+    [Authorize]
     [HttpPost("{eventId:int}/session")]
     public async Task<ActionResult<BookingSessionDto>> StartSession(
         int eventId,
@@ -62,11 +64,13 @@ public class EventsController(SeatRushContext db, ISeatService seats) : BaseApiC
                 e.Id,
                 e.Movie!.Title,
                 e.Movie.PosterUrl,
+                e.Movie.BackdropUrl,
                 e.Movie.AgeRating,
                 e.Movie.DurationMinutes,
                 e.Venue!.Name,
                 e.ShowTime,
-                e.Venue.Capacity))
+                e.Venue.Capacity,
+                e.Venue.TicketPrice))
             .FirstOrDefaultAsync(ct);
 
         return ev is null ? NotFound() : Ok(ev);

@@ -11,6 +11,7 @@ public class SeatRushContext(DbContextOptions<SeatRushContext> options) : DbCont
     public DbSet<Event> Events => Set<Event>();
     public DbSet<Seat> Seats => Set<Seat>();
     public DbSet<Booking> Bookings => Set<Booking>();
+    public DbSet<BookingItem> BookingItems => Set<BookingItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
