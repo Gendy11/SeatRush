@@ -52,7 +52,7 @@ Cinema-style flash-sale ticketing. Venues (screens) have fixed seat layouts; mov
 ### 7. Protection
 | ID | Requirement | Status |
 |----|-------------|--------|
-| FR20 | Rate-limit hold and checkout per user and per IP (Redis); exceeding returns 429. | |
+| FR20 | Rate-limit guest creation, hold and checkout per user and per IP (in-memory, per instance); exceeding returns 429. | Done |
 
 ### 8. Demo
 | ID | Requirement | Status |

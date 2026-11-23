@@ -2,11 +2,14 @@ using Core.Interfaces;
 using Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using SeatRush.RateLimiting;
 using SeatRush.DTOs;
 
 namespace SeatRush.Controllers;
 
 [Authorize]
+[EnableRateLimiting(RateLimitingSetup.Holds)]
 public class SeatsController(ISeatHoldService holds) : BaseApiController
 {
     /// <summary>FR11/FR12: hold the seat until the user's booking session ends.</summary>

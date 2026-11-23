@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using SeatRush.Middleware;
+using SeatRush.RateLimiting;
 using SeatRush.SignalR;
 using StackExchange.Redis;
 
@@ -43,6 +44,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 builder.Services.AddAuthorization();
+builder.Services.AddSeatRushRateLimiting();
 
 // The Angular app is served from a different origin (localhost:4200 locally, Vercel in production).
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
@@ -65,6 +67,7 @@ app.UseCors();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter(); // after auth, so per-user policies can read the guest id
 app.MapControllers();
 app.MapHub<SeatMapHub>(SeatMapHub.Path);
 

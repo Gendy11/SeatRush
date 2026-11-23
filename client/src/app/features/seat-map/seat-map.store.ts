@@ -217,6 +217,8 @@ export class SeatMapStore {
           } else if (err.status === 409) {
             this.flash(`Seat ${seat.row}${seat.number} was just taken by someone else.`);
             this.reloadSeats();
+          } else if (err.status === 429) {
+            this.flash("You're clicking too fast. Wait a moment and try again.");
           } else {
             this.flash('Something went wrong. Please try again.');
           }
@@ -232,7 +234,11 @@ export class SeatMapStore {
       .subscribe({
         // 404 means the hold was already gone (expired): either way the seat is free now.
         next: () => this.updateSeat(seat.id, { status: 'Available', isMine: false, holdExpiresAt: null }),
-        error: () => this.updateSeat(seat.id, { status: 'Available', isMine: false, holdExpiresAt: null }),
+        // 429 = rate limited: the release never happened, so the seat stays ours.
+        error: (err: HttpErrorResponse) => {
+          if (err.status === 429) this.flash("You're clicking too fast. Wait a moment and try again.");
+          else this.updateSeat(seat.id, { status: 'Available', isMine: false, holdExpiresAt: null });
+        },
       })
       .add(() => this.setPending(seat.id, false));
   }

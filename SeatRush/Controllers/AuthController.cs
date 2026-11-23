@@ -2,6 +2,8 @@ using Core.Interfaces;
 using Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using SeatRush.RateLimiting;
 using SeatRush.DTOs;
 
 namespace SeatRush.Controllers;
@@ -11,6 +13,7 @@ namespace SeatRush.Controllers;
 /// in memory only; the refresh token goes in an HttpOnly cookie that JavaScript can never read.
 /// </summary>
 [AllowAnonymous]
+[EnableRateLimiting(RateLimitingSetup.Guest)]
 public class AuthController(IAuthTokenService tokens, IWebHostEnvironment env) : BaseApiController
 {
     public const string RefreshCookie = "seatrush_rt";

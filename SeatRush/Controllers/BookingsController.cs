@@ -4,6 +4,8 @@ using Core.Interfaces;
 using Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using SeatRush.RateLimiting;
 using SeatRush.DTOs;
 
 namespace SeatRush.Controllers;
@@ -18,6 +20,7 @@ public class BookingsController(IBookingService bookings) : BaseApiController
     /// key again returns the original booking (200) instead of creating a second one.
     /// </summary>
     [HttpPost]
+    [EnableRateLimiting(RateLimitingSetup.Checkout)]
     public async Task<ActionResult<BookingDto>> Create(
         CreateBookingDto request,
         [FromHeader(Name = IdempotencyHeader)] string? idempotencyKey,

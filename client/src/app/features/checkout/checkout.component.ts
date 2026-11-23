@@ -98,7 +98,9 @@ export class CheckoutComponent implements OnInit {
           this.error.set(
             err.status === 409
               ? (err.error?.title ?? 'Some seats are no longer available.')
-              : 'Something went wrong. Please try again.',
+              : err.status === 429
+                ? 'Too many attempts. Wait a moment and try again.'
+                : 'Something went wrong. Please try again.',
           );
         },
       });
