@@ -18,7 +18,6 @@ public class EventConfiguration : IEntityTypeConfiguration<Event>
             .HasForeignKey(e => e.VenueId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // FR3: no two showings in the same venue at the same start time.
         builder.HasIndex(e => new { e.VenueId, e.ShowTime }).IsUnique();
     }
 }

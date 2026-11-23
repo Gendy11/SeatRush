@@ -10,4 +10,5 @@ public record EventDetailsDto(
     string Venue,
     DateTime ShowTime,
     int TotalSeats,
-    decimal TicketPrice);
+    decimal TicketPrice,
+    bool HasWaitingRoom);

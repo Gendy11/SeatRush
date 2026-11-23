@@ -25,7 +25,6 @@ public class BookingService(
         string idempotencyKey,
         CancellationToken ct = default)
     {
-        // 1. Idempotency: a retried request (double click, network retry) returns the original booking.
         if (await FindByIdempotencyKeyAsync(userId, idempotencyKey, ct) is { } replay)
             return new CheckoutResult(CheckoutOutcome.Replayed, replay);
 
@@ -33,7 +32,6 @@ public class BookingService(
         if (ids.Length == 0)
             return new CheckoutResult(CheckoutOutcome.NoSeats);
 
-        // 2. The seats must belong to this showing and still be held by this user (Redis).
         var price = await db.Events
             .Where(e => e.Id == eventId)
             .Select(e => (decimal?)e.Venue!.TicketPrice)
@@ -44,12 +42,10 @@ public class BookingService(
         if (price is null || seatsInEvent != ids.Length || !await holds.AreAllHeldByAsync(eventId, ids, userId))
             return new CheckoutResult(CheckoutOutcome.SeatsNotHeld);
 
-        // 3. Postgres has the final word. One transaction: flip the seats to Booked only where they are
-        //    still Available, and insert the booking. If any seat was already booked, the row count is short
-        //    and everything rolls back. The unique indexes are a second safety net.
         await using var tx = await db.Database.BeginTransactionAsync(ct);
         try
         {
+            // only flips seats that are still available, so the db itself blocks double booking
             var updated = await db.Seats
                 .Where(s => s.EventId == eventId && ids.Contains(s.Id) && s.Status == SeatStatus.Available)
                 .ExecuteUpdateAsync(u => u
@@ -81,15 +77,11 @@ public class BookingService(
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            // Lost a race: either a concurrent request with the same idempotency key won (→ replay it),
-            // or another booking took one of these seats (→ unavailable).
             await tx.RollbackAsync(ct);
             db.ChangeTracker.Clear();
             return await ReplayOr(CheckoutOutcome.SeatsUnavailable, userId, idempotencyKey, ct);
         }
 
-        // 4. Committed. Release the Redis holds, tell live viewers the seats are Booked, end the session.
-        //    Failures here don't undo the booking: Booked in Postgres already wins over any hold.
         try
         {
             await holds.MarkBookedAsync(eventId, ids);
@@ -134,10 +126,8 @@ public class BookingService(
             b.Status,
             b.CreatedAt));
 
-    // Unambiguous characters only (no 0/O, 1/I/L) so it's easy to read out at the counter.
     private const string ReferenceAlphabet = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
 
-    /// <summary>"SR-" + 8 random characters: ~8.5e11 combinations, so collisions are practically impossible.</summary>
     private static string NewReference() =>
         "SR-" + RandomNumberGenerator.GetString(ReferenceAlphabet, 8);
 }

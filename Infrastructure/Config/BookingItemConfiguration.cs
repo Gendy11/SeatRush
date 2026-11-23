@@ -15,8 +15,6 @@ public class BookingItemConfiguration : IEntityTypeConfiguration<BookingItem>
             .HasForeignKey(i => i.SeatId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Storage-level guarantee: a seat can appear in at most one booking, ever. Even if every other
-        // check failed, Postgres would reject the second booking of the same seat.
         builder.HasIndex(i => i.SeatId).IsUnique().HasDatabaseName("ux_booking_items_one_booking_per_seat");
     }
 }

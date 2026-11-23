@@ -7,10 +7,6 @@ import { AuthService } from '../services/auth.service';
 const withToken = (req: HttpRequest<unknown>, token: string) =>
   req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
 
-/**
- * Adds the in-memory access token to every API call. If the API answers 401 (token expired or the server
- * restarted with a new key), it gets a fresh token once and retries the request.
- */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith(environment.apiUrl)) return next(req);
 

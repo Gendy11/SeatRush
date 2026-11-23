@@ -136,6 +136,10 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("HasWaitingRoom")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_waiting_room");
+
                     b.Property<int>("MovieId")
                         .HasColumnType("integer")
                         .HasColumnName("movie_id");

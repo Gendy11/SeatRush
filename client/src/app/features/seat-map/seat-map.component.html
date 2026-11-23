@@ -2,29 +2,37 @@
   <div class="page-top">
     <a routerLink="/" class="back">← All movies</a>
 
-    @if (!store.loading() && !store.error()) {
-      <div class="view-toggle" role="group" aria-label="Seat map view">
-        <button
-          type="button"
-          [class.active]="mode() === '3d'"
-          [attr.aria-pressed]="mode() === '3d'"
-          (click)="mode.set('3d')"
-        >
-          3D
-        </button>
-        <button
-          type="button"
-          [class.active]="mode() === '2d'"
-          [attr.aria-pressed]="mode() === '2d'"
-          (click)="mode.set('2d')"
-        >
-          2D
-        </button>
-      </div>
-    }
+    <div class="page-top__actions">
+      @if (store.event(); as ev) {
+        <app-rush-control [event]="ev" />
+      }
+
+      @if (!store.loading() && !store.error() && !store.inQueue()) {
+        <div class="view-toggle" role="group" aria-label="Seat map view">
+          <button
+            type="button"
+            [class.active]="mode() === '3d'"
+            [attr.aria-pressed]="mode() === '3d'"
+            (click)="mode.set('3d')"
+          >
+            3D
+          </button>
+          <button
+            type="button"
+            [class.active]="mode() === '2d'"
+            [attr.aria-pressed]="mode() === '2d'"
+            (click)="mode.set('2d')"
+          >
+            2D
+          </button>
+        </div>
+      }
+    </div>
   </div>
 
-  @if (store.loading()) {
+  @if (store.inQueue()) {
+    <app-waiting-room [event]="store.event()!" [position]="store.queuePosition()!" />
+  } @else if (store.loading()) {
     <p class="state">Loading seats…</p>
   } @else if (store.error() || !store.event()) {
     <p class="state">Couldn't load this showing.</p>
@@ -33,9 +41,7 @@
     @let mySeats = store.mySeats();
     @let expired = store.expired();
 
-    <!-- The 3D hall has its own overlay (title, timer, seats, checkout); everything else uses this page chrome. -->
     @if (!show3d()) {
-      <!-- Session bar: countdown + selection, sticks below the header while scrolling. -->
       <div
         class="session"
         [class.session--urgent]="store.urgent()"
@@ -95,20 +101,18 @@
 
     <div class="stage-wrap">
       @if (show3d()) {
-        <!-- three.js is ~400 kB: @defer puts it in a separate chunk, loaded only when the 3D hall is shown. -->
         @defer (on immediate) {
           <app-hall-3d />
         } @placeholder (minimum 200ms) {
           <div class="hall3d-placeholder">Loading 3D hall…</div>
         }
       } @else if (mode() === '3d') {
-        <!-- 3D picked on a phone (or a browser without WebGL): explain instead of showing a cramped hall. -->
         <div class="three-d-note">
           <h2>3D hall</h2>
           <p>
             @if (webgl) {
-              The 3D hall is made for bigger screens. Open SeatRush on a tablet or laptop to walk into the
-              cinema in 3D.
+              The 3D hall is made for bigger screens. Open SeatRush on a tablet or laptop to walk
+              into the cinema in 3D.
             } @else {
               Your browser can't display the 3D hall.
             }
@@ -117,7 +121,6 @@
         </div>
       } @else {
         <div #hall class="hall" [style.--cols]="store.maxCols()">
-          <!-- Stage = screen + seats, as wide as the widest row, so the screen stays centred over the seats when the hall scrolls. -->
           <div class="stage">
             <div class="screen">Screen</div>
 
@@ -164,7 +167,9 @@
         <div class="expired">
           <h2>Time's up</h2>
           <p>Your seats were released so others can book them.</p>
-          <button type="button" class="btn" (click)="store.restart()">Start again (7:00)</button>
+          <button type="button" class="btn" (click)="store.restart()">
+            {{ ev.hasWaitingRoom ? 'Join the line again' : 'Start again (7:00)' }}
+          </button>
         </div>
       }
     </div>

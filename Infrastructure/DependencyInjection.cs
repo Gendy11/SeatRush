@@ -1,5 +1,6 @@
 using Core.Interfaces;
 using Infrastructure.Data;
+using Infrastructure.Demo;
 using Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,8 +20,6 @@ public static class DependencyInjection
 
         services.AddDbContext<SeatRushContext>(o => o.UseSeatRushPostgres(connectionString));
 
-        // One multiplexer per process (it is thread-safe and pools internally).
-        // abortConnect=false: the API still starts if Redis is down; Redis calls then fail and return 503.
         services.AddSingleton<IConnectionMultiplexer>(_ =>
         {
             var redisOptions = ConfigurationOptions.Parse(redisConnection);
@@ -31,6 +30,8 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
 
         services.Configure<BookingSessionOptions>(config.GetSection(BookingSessionOptions.SectionName));
+        services.Configure<WaitingRoomOptions>(config.GetSection(WaitingRoomOptions.SectionName));
+        services.Configure<RushOptions>(config.GetSection(RushOptions.SectionName));
         services.Configure<AuthOptions>(config.GetSection(AuthOptions.SectionName));
 
         services.AddScoped<ISeatService, SeatService>();
@@ -38,6 +39,10 @@ public static class DependencyInjection
         services.AddScoped<IBookingSessionService, BookingSessionService>();
         services.AddScoped<IBookingService, BookingService>();
         services.AddSingleton<IAuthTokenService, AuthTokenService>();
+        services.AddSingleton<IWaitingRoomService, WaitingRoomService>();
+
+        services.AddSingleton<IRushSimulator, RushSimulator>();
+        services.AddScoped<IShowingResetService, ShowingResetService>();
 
         return services;
     }

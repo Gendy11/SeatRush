@@ -15,10 +15,6 @@ public class BookingsController(IBookingService bookings) : BaseApiController
 {
     private const string IdempotencyHeader = "Idempotency-Key";
 
-    /// <summary>
-    /// FR15–FR17: book the seats the user holds. Requires an Idempotency-Key header; sending the same
-    /// key again returns the original booking (200) instead of creating a second one.
-    /// </summary>
     [HttpPost]
     [EnableRateLimiting(RateLimitingSetup.Checkout)]
     public async Task<ActionResult<BookingDto>> Create(
@@ -48,7 +44,6 @@ public class BookingsController(IBookingService bookings) : BaseApiController
         };
     }
 
-    /// <summary>FR18: the current user's bookings, newest first.</summary>
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<BookingDto>>> GetMine(CancellationToken ct)
     {

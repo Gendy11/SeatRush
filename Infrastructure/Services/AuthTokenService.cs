@@ -10,11 +10,6 @@ using StackExchange.Redis;
 
 namespace Infrastructure.Services;
 
-/// <summary>
-/// Issues guest identities. Access tokens are signed JWTs (stateless, checked by signature only).
-/// Refresh tokens are random strings; Redis stores only their SHA-256 hash, so a Redis leak doesn't leak tokens.
-/// Every refresh rotates the token, and replaying a used one revokes the whole family (theft detection).
-/// </summary>
 public class AuthTokenService(IConnectionMultiplexer redis, IOptions<AuthOptions> options, TimeProvider clock) : IAuthTokenService
 {
     private readonly IDatabase _redis = redis.GetDatabase();
@@ -45,7 +40,6 @@ public class AuthTokenService(IConnectionMultiplexer redis, IOptions<AuthOptions
 
         if (usedAt != 0)
         {
-            // Already rotated. A parallel tab a few seconds ago is normal; anything later is a replayed (stolen) token.
             if (now - DateTimeOffset.FromUnixTimeMilliseconds(usedAt) < _options.RefreshReuseGrace)
                 return new RefreshResult(RefreshOutcome.RetryLater);
 
@@ -53,7 +47,6 @@ public class AuthTokenService(IConnectionMultiplexer redis, IOptions<AuthOptions
             return new RefreshResult(RefreshOutcome.Invalid);
         }
 
-        // Mark used atomically: only one of two simultaneous refreshes with this token can win.
         var tx = _redis.CreateTransaction();
         tx.AddCondition(Condition.HashEqual(key, "usedAt", "0"));
         _ = tx.HashSetAsync(key, "usedAt", now.ToUnixTimeMilliseconds());

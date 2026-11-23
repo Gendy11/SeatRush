@@ -12,7 +12,6 @@ namespace SeatRush.Controllers;
 [EnableRateLimiting(RateLimitingSetup.Holds)]
 public class SeatsController(ISeatHoldService holds) : BaseApiController
 {
-    /// <summary>FR11/FR12: hold the seat until the user's booking session ends.</summary>
     [HttpPost("{seatId:int}/hold")]
     public async Task<ActionResult<HoldDto>> Hold(int seatId, CancellationToken ct)
     {
@@ -31,7 +30,6 @@ public class SeatsController(ISeatHoldService holds) : BaseApiController
         };
     }
 
-    /// <summary>FR13: release a seat you hold. 404 if you don't hold it.</summary>
     [HttpDelete("{seatId:int}/hold")]
     public async Task<ActionResult> Release(int seatId, CancellationToken ct)
     {

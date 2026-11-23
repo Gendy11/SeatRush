@@ -1,11 +1,3 @@
-/**
- * Turns seat data into 3D positions. Pure function, no three.js, so it's easy to test.
- *
- * Coordinate system (metres): x = left/right (0 = centre aisle line), y = up, z = towards the back.
- * The screen sits at negative z; row A is the front row, and every next row is further back and higher
- * (stadium seating).
- */
-
 export interface LayoutSeatInput {
   id: number;
   number: number;
@@ -21,15 +13,15 @@ export interface LayoutOptions {
   seatGap: number;
   aisleWidth: number;
   rowDepth: number;
-  /** How much higher each row is than the one in front. */
+
   rowRise: number;
-  /** Distance from the screen to the front row. */
+
   screenDistance: number;
-  /** Eye height above a row's floor when seated. */
+
   eyeHeight: number;
-  /** Width ÷ height of the screen. */
+
   screenAspect: number;
-  /** Seat numbers after which an aisle runs, per row length. Default: {@link defaultAisles}. */
+
   aislesFor: (seatsInRow: number) => readonly number[];
 }
 
@@ -39,7 +31,7 @@ export interface SeatPlacement {
   number: number;
   rowIndex: number;
   x: number;
-  /** Floor height of the seat's row. */
+
   y: number;
   z: number;
 }
@@ -49,7 +41,7 @@ export interface RowPlacement {
   index: number;
   y: number;
   z: number;
-  /** Leftmost and rightmost seat centres. */
+
   minX: number;
   maxX: number;
 }
@@ -57,7 +49,7 @@ export interface RowPlacement {
 export interface ScreenPlacement {
   width: number;
   height: number;
-  /** Centre of the screen. */
+
   y: number;
   z: number;
 }
@@ -65,22 +57,18 @@ export interface ScreenPlacement {
 export interface HallLayout {
   seats: SeatPlacement[];
   rows: RowPlacement[];
-  /** x of every aisle centre line (taken from the widest row). */
+
   aisleXs: number[];
-  /** Total width covered by seats. */
+
   width: number;
-  /** z of the back row. */
+
   backZ: number;
-  /** Floor height of the back row. */
+
   backY: number;
   screen: ScreenPlacement;
   eyeHeight: number;
 }
 
-/**
- * Aisles that look like a real cinema:
- * small rows → none, medium → one centre aisle, wide rows → two aisles splitting the row into ¼ · ½ · ¼.
- */
 export function defaultAisles(seatsInRow: number): number[] {
   if (seatsInRow < 10) return [];
   if (seatsInRow < 16) return [Math.ceil(seatsInRow / 2)];
@@ -115,7 +103,6 @@ export function buildHallLayout(
     const ordered = [...row.seats].sort((a, b) => a.number - b.number);
     const aisles = new Set(o.aislesFor(ordered.length));
 
-    // Lay seats left to right, inserting aisle gaps, then centre the row on x = 0.
     const xs: number[] = [];
     const aisleXs: number[] = [];
     let cursor = 0;
@@ -170,7 +157,7 @@ export function buildHallLayout(
     width,
     backZ: lastRow?.z ?? 0,
     backY: lastRow?.y ?? 0,
-    // Bottom edge of the screen a little above the front-row eye line, so heads don't block it.
+
     screen: {
       width: screenWidth,
       height: screenHeight,

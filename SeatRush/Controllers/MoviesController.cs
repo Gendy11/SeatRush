@@ -7,14 +7,12 @@ namespace SeatRush.Controllers;
 
 public class MoviesController(SeatRushContext db) : BaseApiController
 {
-    /// <summary>FR4: movies that have upcoming showings, each with its showings soonest first.</summary>
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<MovieDto>>> GetMovies(CancellationToken ct)
     {
-        // One query: upcoming showings with their movie and venue, grouped in memory (small result set).
         var showings = await db.Events
             .AsNoTracking()
-            .Where(e => e.ShowTime > DateTime.UtcNow) // translated to now() in Postgres
+            .Where(e => e.ShowTime > DateTime.UtcNow)
             .OrderBy(e => e.ShowTime)
             .Select(e => new
             {

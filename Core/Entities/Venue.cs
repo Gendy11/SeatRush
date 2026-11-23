@@ -1,12 +1,10 @@
 namespace Core.Entities;
 
-/// <summary>A physical hall/screen with a fixed seat layout, reused by many events.</summary>
 public class Venue : BaseEntity
 {
     public required string Name { get; set; }
     public int Capacity { get; set; }
 
-    /// <summary>Price of one ticket for any showing in this venue (EGP).</summary>
     public decimal TicketPrice { get; set; }
 
     public List<VenueSeat> Seats { get; set; } = [];
@@ -29,7 +27,6 @@ public class Venue : BaseEntity
         return venue;
     }
 
-    // 0 -> A, 25 -> Z, 26 -> AA ...
     private static string RowLabel(int index)
     {
         var label = "";

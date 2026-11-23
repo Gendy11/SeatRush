@@ -9,10 +9,6 @@ export class BookingService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = environment.apiUrl;
 
-  /**
-   * Books the held seats. The same idempotencyKey must be reused for retries of this checkout,
-   * so a double click or network retry returns the same booking instead of creating two.
-   */
   createBooking(
     eventId: number,
     seatIds: number[],

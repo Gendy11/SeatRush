@@ -1,22 +1,18 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { forkJoin, fromEvent } from 'rxjs';
+import { EMPTY, expand, forkJoin, fromEvent, Observable, of, retry, Subscription, switchMap, timer } from 'rxjs';
 import { EventService } from '../../core/services/event.service';
 import { LiveEvent, SignalrService } from '../../core/services/signalr.service';
-import { BookingSession, EventDetails, Seat, SeatChange, SeatMap } from '../../shared/models/seat';
+import { BookingSession, EventDetails, QueueStatus, Seat, SeatChange, SeatMap } from '../../shared/models/seat';
+
+const QUEUE_POLL_MS = 3000;
 
 export interface SeatRow {
   label: string;
   seats: Seat[];
 }
 
-/**
- * Everything about one showing's seats for the current page: the snapshot, live SignalR changes (ordered by
- * seq), holds expiring in the browser, the session countdown, and hold/release clicks.
- *
- * Provided by the seat-map page, so both views (2D grid and 3D hall) read the same state and can never disagree.
- */
 @Injectable()
 export class SeatMapStore {
   private readonly eventService = inject(EventService);
@@ -30,22 +26,23 @@ export class SeatMapStore {
   readonly error = signal(false);
   readonly message = signal<string | null>(null);
 
-  /** Seats as last received from the server (snapshot + live changes). */
+  readonly queuePosition = signal<number | null>(null);
+  readonly inQueue = computed(() => this.queuePosition() !== null);
+  private queueSub?: Subscription;
+
+  private live = false;
+
   private readonly seats = signal<Seat[]>([]);
 
-  /** Seats with a hold/release request in flight (ignore extra clicks and echoes meanwhile). */
   private readonly pending = signal<ReadonlySet<number>>(new Set());
   readonly pendingIds = this.pending.asReadonly();
 
-  // ---------- Clock ----------
-  /** server time − browser time; applied to every deadline so a wrong PC clock doesn't matter. */
   private clockOffsetMs = 0;
   private readonly nowMs = signal(Date.now());
   private serverNow(): number {
     return this.nowMs() + this.clockOffsetMs;
   }
 
-  // ---------- Countdown ----------
   private readonly sessionExpiresMs = signal<number | null>(null);
 
   readonly remainingMs = computed(() => {
@@ -59,15 +56,11 @@ export class SeatMapStore {
   });
   readonly urgent = computed(() => this.remainingMs() > 0 && this.remainingMs() < 60_000);
 
-  // ---------- Live updates ----------
-  /** Seq of the current snapshot; per-seat seq of the latest change applied since. */
   private snapshotSeq = 0;
   private readonly seatSeq = new Map<number, number>();
-  /** While a snapshot is loading, live changes are queued and applied on top of it afterwards. */
+
   private buffer: SeatChange[] | null = [];
 
-  // ---------- What the views show ----------
-  /** Server state with expired holds turned back into free seats (no server push needed for expiry). */
   readonly view = computed<Seat[]>(() => {
     const now = this.serverNow();
     return this.seats().map((s) =>
@@ -77,7 +70,6 @@ export class SeatMapStore {
     );
   });
 
-  /** Seats arrive ordered row by row; group them for rendering. */
   readonly rows = computed<SeatRow[]>(() => {
     const rows: SeatRow[] = [];
     for (const seat of this.view()) {
@@ -88,49 +80,118 @@ export class SeatMapStore {
     return rows;
   });
 
-  /** Widest row. */
   readonly maxCols = computed(() => Math.max(1, ...this.rows().map((r) => r.seats.length)));
   readonly available = computed(() => this.view().filter((s) => s.status === 'Available').length);
   readonly mySeats = computed(() => this.view().filter((s) => s.isMine));
 
-  /** Starts the page: live updates first, then event + session + snapshot. Call once. */
   load(eventId: number): void {
     this.eventId = eventId;
 
-    const timer = setInterval(() => this.nowMs.set(Date.now()), 250);
-    this.destroyRef.onDestroy(() => clearInterval(timer));
+    const clock = setInterval(() => this.nowMs.set(Date.now()), 250);
+    this.destroyRef.onDestroy(() => clearInterval(clock));
 
-    // 1. Subscribe to live changes FIRST (they queue in `buffer` until the snapshot is in).
-    this.signalr
-      .watchEvent(eventId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((e: LiveEvent) => (e.type === 'resync' ? this.reloadSeats() : this.onChange(e.change)));
-
-    // 2. Coming back to the tab: timers may have been paused and pushes missed, so re-sync.
-    fromEvent(document, 'visibilitychange')
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => document.visibilityState === 'visible' && this.reloadSeats());
-
-    // 3. Then load the page.
-    forkJoin({
-      event: this.eventService.getEvent(eventId),
-      session: this.eventService.startSession(eventId),
-      map: this.eventService.getSeatMap(eventId),
-    }).subscribe({
-      next: ({ event, session, map }) => {
+    this.eventService.getEvent(eventId).subscribe({
+      next: (event) => {
         this.event.set(event);
+        if (event.hasWaitingRoom) this.waitInLine();
+        else this.enter();
+      },
+      error: () => this.fail(),
+    });
+  }
+
+  private waitInLine(): void {
+    this.queueSub?.unsubscribe();
+
+    const poll = (): Observable<QueueStatus> =>
+      timer(QUEUE_POLL_MS + Math.random() * 1000).pipe(
+        switchMap(() => this.eventService.getQueueStatus(this.eventId)),
+        switchMap((s) => (s.state === 'NotQueued' ? this.eventService.joinQueue(this.eventId) : of(s))),
+        retry({ count: 5, delay: QUEUE_POLL_MS }),
+      );
+
+    this.queueSub = this.eventService
+      .joinQueue(this.eventId)
+      .pipe(
+        expand((s) => (s.state === 'Admitted' ? EMPTY : poll())),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: (s) => {
+          if (s.state === 'Admitted') {
+            this.queuePosition.set(null);
+            this.alertIfHidden();
+            this.enter();
+          } else {
+            this.queuePosition.set(s.position ?? 1);
+          }
+        },
+        error: () => this.fail(),
+      });
+  }
+
+  private enter(): void {
+    this.loading.set(true);
+    this.buffer ??= [];
+
+    if (!this.live) {
+      this.live = true;
+
+      this.signalr
+        .watchEvent(this.eventId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((e: LiveEvent) => {
+          if (e.type === 'change') this.onChange(e.change);
+          else if (e.type === 'reset') this.onShowingReset();
+          else this.reloadSeats();
+        });
+
+      fromEvent(document, 'visibilitychange')
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => document.visibilityState === 'visible' && this.reloadSeats());
+    }
+
+    forkJoin({
+      session: this.eventService.startSession(this.eventId),
+      map: this.eventService.getSeatMap(this.eventId),
+    }).subscribe({
+      next: ({ session, map }) => {
         this.applySession(session);
         this.applySnapshot(map);
         this.loading.set(false);
       },
-      error: () => {
-        this.error.set(true);
-        this.loading.set(false);
-      },
+
+      error: (err: HttpErrorResponse) => (err.status === 403 ? this.waitInLine() : this.fail()),
     });
   }
 
-  /** Click: free seat → hold it; my seat → release it; anyone else's → nothing. */
+  private alertIfHidden(): void {
+    if (!document.hidden) return;
+
+    const original = document.title;
+    const alert = "🎟 It's your turn!";
+    const flasher = setInterval(() => (document.title = document.title === alert ? original : alert), 1000);
+    document.title = alert;
+
+    const stop = () => {
+      if (document.hidden) return;
+      clearInterval(flasher);
+      document.title = original;
+      document.removeEventListener('visibilitychange', stop);
+    };
+    document.addEventListener('visibilitychange', stop);
+    this.destroyRef.onDestroy(() => {
+      clearInterval(flasher);
+      document.title = original;
+      document.removeEventListener('visibilitychange', stop);
+    });
+  }
+
+  private fail(): void {
+    this.error.set(true);
+    this.loading.set(false);
+  }
+
   toggle(seat: Seat): void {
     if (this.expired() || this.pending().has(seat.id)) return;
 
@@ -138,38 +199,59 @@ export class SeatMapStore {
     else if (seat.status === 'Available') this.hold(seat);
   }
 
-  /** After time ran out: start a fresh 7-minute session and reload the map. */
   restart(): void {
     this.message.set(null);
+
+    if (this.event()?.hasWaitingRoom) {
+      this.sessionExpiresMs.set(null);
+      this.waitInLine();
+      return;
+    }
+
     this.eventService.startSession(this.eventId).subscribe((session) => {
       this.applySession(session);
       this.reloadSeats();
     });
   }
 
+  queueAgain(): void {
+    this.sessionExpiresMs.set(null);
+    this.waitInLine();
+  }
+
+  onShowingReset(): void {
+    const now = Date.now();
+    if (now - this.lastResetMs < 2000) return;
+    this.lastResetMs = now;
+
+    this.flash('The showing was reset. Every seat is free again.');
+    this.sessionExpiresMs.set(null);
+    if (this.event()?.hasWaitingRoom) this.waitInLine();
+    else this.enter();
+  }
+
+  private lastResetMs = 0;
+
   isPending(seat: Seat): boolean {
     return this.pending().has(seat.id);
   }
 
-  // ---------- Live changes ----------
   private onChange(change: SeatChange): void {
     if (this.buffer) {
       this.buffer.push(change);
       return;
     }
 
-    // Ignore anything not newer than what this seat already reflects (out-of-order or already in the snapshot).
     const known = this.seatSeq.get(change.seatId) ?? this.snapshotSeq;
     if (change.seq <= known) return;
     this.seatSeq.set(change.seatId, change.seq);
 
-    // My own click is in flight: its HTTP response will set the final state.
     if (this.pending().has(change.seatId)) return;
 
     this.seats.update((seats) =>
       seats.map((s) => {
         if (s.id !== change.seatId) return s;
-        // An echo of my own hold keeps it mine (same deadline = same session); anyone else's hold isn't.
+
         const myEcho =
           change.status === 'Held' &&
           s.isMine &&
@@ -197,14 +279,12 @@ export class SeatMapStore {
     this.flushBuffer();
   }
 
-  /** Apply changes that arrived while the snapshot was loading; older ones are skipped by seq. */
   private flushBuffer(): void {
     const queued = this.buffer ?? [];
     this.buffer = null;
     for (const change of queued) this.onChange(change);
   }
 
-  // ---------- Clicks ----------
   private hold(seat: Seat): void {
     this.setPending(seat.id, true);
     this.eventService
@@ -213,7 +293,7 @@ export class SeatMapStore {
         next: (res) => this.updateSeat(seat.id, { status: 'Held', isMine: true, holdExpiresAt: res.expiresAt }),
         error: (err: HttpErrorResponse) => {
           if (err.status === 409 && String(err.error?.title ?? '').includes('session')) {
-            this.sessionExpiresMs.set(this.serverNow()); // server says our time is up
+            this.sessionExpiresMs.set(this.serverNow());
           } else if (err.status === 409) {
             this.flash(`Seat ${seat.row}${seat.number} was just taken by someone else.`);
             this.reloadSeats();
@@ -232,9 +312,8 @@ export class SeatMapStore {
     this.eventService
       .releaseSeat(seat.id)
       .subscribe({
-        // 404 means the hold was already gone (expired): either way the seat is free now.
         next: () => this.updateSeat(seat.id, { status: 'Available', isMine: false, holdExpiresAt: null }),
-        // 429 = rate limited: the release never happened, so the seat stays ours.
+
         error: (err: HttpErrorResponse) => {
           if (err.status === 429) this.flash("You're clicking too fast. Wait a moment and try again.");
           else this.updateSeat(seat.id, { status: 'Available', isMine: false, holdExpiresAt: null });
@@ -262,7 +341,7 @@ export class SeatMapStore {
     });
   }
 
-  private flash(text: string): void {
+  flash(text: string): void {
     this.message.set(text);
     setTimeout(() => this.message() === text && this.message.set(null), 4000);
   }

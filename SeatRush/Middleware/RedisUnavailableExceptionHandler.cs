@@ -4,10 +4,6 @@ using StackExchange.Redis;
 
 namespace SeatRush.Middleware;
 
-/// <summary>
-/// Redis down → 503 "try again" instead of a 500. Sessions and holds fail closed;
-/// bookings in Postgres are unaffected.
-/// </summary>
 public class RedisUnavailableExceptionHandler(ILogger<RedisUnavailableExceptionHandler> logger) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext context, Exception exception, CancellationToken ct)

@@ -1,6 +1,5 @@
 namespace Core.Entities;
 
-/// <summary>One seat in a booking, with the price paid at booking time.</summary>
 public class BookingItem : BaseEntity
 {
     public int BookingId { get; set; }

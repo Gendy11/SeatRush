@@ -15,7 +15,6 @@ public class VenueSeatConfiguration : IEntityTypeConfiguration<VenueSeat>
             .HasForeignKey(s => s.VenueId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // One physical seat per (venue, row, number).
         builder.HasIndex(s => new { s.VenueId, s.Row, s.Number }).IsUnique();
     }
 }

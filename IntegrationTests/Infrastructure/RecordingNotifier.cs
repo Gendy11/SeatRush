@@ -15,5 +15,13 @@ public class RecordingNotifier : ISeatMapNotifier
         return Task.CompletedTask;
     }
 
+    public ConcurrentQueue<int> Resets { get; } = new();
+
+    public Task ShowingResetAsync(int eventId)
+    {
+        Resets.Enqueue(eventId);
+        return Task.CompletedTask;
+    }
+
     public IReadOnlyList<SeatChange> For(int eventId) => Changes.Where(c => c.EventId == eventId).OrderBy(c => c.Seq).ToList();
 }

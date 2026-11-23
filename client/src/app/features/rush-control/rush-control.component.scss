@@ -1,0 +1,113 @@
+.rush {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
+.rush--running {
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.rush__btn {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: progress;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.rush__btn--go {
+  background: rgba(245, 197, 24, 0.14);
+  color: var(--accent);
+
+  &:hover:not(:disabled) {
+    background: var(--accent);
+    color: var(--accent-text);
+  }
+}
+
+.rush__short {
+  display: none;
+}
+
+.rush__btn--ghost {
+  color: var(--text-muted);
+}
+
+.rush__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 8px;
+  white-space: nowrap;
+
+  strong {
+    color: #fca5a5;
+  }
+}
+
+.rush__stats {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.rush__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f87171;
+  box-shadow: 0 0 8px #f87171;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rush__dot {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .rush__long {
+    display: none;
+  }
+
+  .rush__short {
+    display: inline;
+  }
+
+  .rush__btn {
+    padding: 6px 10px;
+  }
+}

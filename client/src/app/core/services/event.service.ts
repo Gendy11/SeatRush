@@ -3,14 +3,13 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Movie } from '../../shared/models/event';
-import { BookingSession, EventDetails, SeatMap } from '../../shared/models/seat';
+import { BookingSession, EventDetails, QueueStatus, SeatMap } from '../../shared/models/seat';
 
 @Injectable({ providedIn: 'root' })
 export class EventService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = environment.apiUrl;
 
-  /** Movies with upcoming showings, already grouped and sorted by the API. */
   getMovies(): Observable<Movie[]> {
     return this.http.get<Movie[]>(this.baseUrl + 'movies');
   }
@@ -23,9 +22,16 @@ export class EventService {
     return this.http.get<SeatMap>(`${this.baseUrl}events/${eventId}/seats`);
   }
 
-  /** Starts the 7-minute booking session, or resumes the active one (same deadline). */
   startSession(eventId: number): Observable<BookingSession> {
     return this.http.post<BookingSession>(`${this.baseUrl}events/${eventId}/session`, {});
+  }
+
+  joinQueue(eventId: number): Observable<QueueStatus> {
+    return this.http.post<QueueStatus>(`${this.baseUrl}events/${eventId}/queue`, {});
+  }
+
+  getQueueStatus(eventId: number): Observable<QueueStatus> {
+    return this.http.get<QueueStatus>(`${this.baseUrl}events/${eventId}/queue`);
   }
 
   holdSeat(seatId: number): Observable<{ seatId: number; expiresAt: string }> {

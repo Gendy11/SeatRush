@@ -14,7 +14,7 @@
   --live: #22c55e;
   --radius: 10px;
   --font: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  /* Tall condensed display face for cinematic titles (3D hall overlay). */
+
   --font-display: 'Bebas Neue', 'Oswald', Impact, sans-serif;
 }
 
@@ -24,8 +24,6 @@
   box-sizing: border-box;
 }
 
-/* Only <html> paints the base colour; <body> stays transparent so the fixed glow + grain
-   layers (z-index -1/-2 below) show behind the content, not just below it. */
 html {
   background: var(--bg);
 }
@@ -38,7 +36,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Cinema atmosphere: warm projector glow top-left, cool glow bottom-right, darker edges. Fixed so it doesn't scroll. */
 body::before {
   content: '';
   position: fixed;
@@ -51,7 +48,6 @@ body::before {
     radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.6) 100%);
 }
 
-/* Subtle film grain. */
 body::after {
   content: '';
   position: fixed;
@@ -74,7 +70,6 @@ a {
   padding: 0 16px;
 }
 
-/* Primary pill button (gold). Works on <button> and <a>. */
 .btn {
   display: inline-block;
   padding: 12px 22px;
@@ -111,7 +106,6 @@ a {
   box-shadow: none;
 }
 
-/* Site footer (TMDB credit). */
 .footer {
   margin-top: 40px;
   padding: 20px 0 28px;

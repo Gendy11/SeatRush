@@ -1,6 +1,5 @@
 namespace SeatRush.DTOs;
 
-/// <summary>A movie with its upcoming showings: the shape the "Now Showing" page needs.</summary>
 public record MovieDto(
     int Id,
     string Title,

@@ -27,10 +27,8 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
 
         builder.HasIndex(b => b.Reference).IsUnique();
 
-        // Idempotency is per user: the same key from two users is two different checkouts.
         builder.HasIndex(b => new { b.UserId, b.IdempotencyKey }).IsUnique();
 
-        // "My bookings" lookup.
         builder.HasIndex(b => new { b.UserId, b.CreatedAt });
     }
 }

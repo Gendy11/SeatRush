@@ -1,0 +1,42 @@
+@let ev = event();
+
+<div class="room" [style.--backdrop]="'url(' + ev.backdropUrl + ')'">
+  <div class="room__content">
+    <p class="eyebrow">
+      <span class="live-dot"></span>
+      High demand · waiting room
+    </p>
+
+    <h1 class="title">{{ ev.movieTitle }}</h1>
+    <p class="meta">{{ ev.showTime | date: 'EEEE d MMM · HH:mm' }} · {{ ev.venue }}</p>
+
+    <div class="place" aria-live="polite">
+      <span class="place__label">Your place in line</span>
+      <span class="place__number">#{{ position() }}</span>
+      <span class="place__ahead">
+        @if (ahead() === 0) {
+          You're next. Get ready…
+        } @else {
+          {{ ahead() }} {{ ahead() === 1 ? 'person' : 'people' }} ahead of you
+        }
+      </span>
+    </div>
+
+    <div
+      class="bar"
+      role="progressbar"
+      aria-label="Progress through the line"
+      [attr.aria-valuenow]="(progress() * 100).toFixed(0)"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    >
+      <div class="bar__fill" [style.width.%]="progress() * 100"></div>
+    </div>
+
+    <ul class="notes">
+      <li>Keep this tab open. When it's your turn, you'll go straight to the seats.</li>
+      <li>You'll then have <strong>7 minutes</strong> to pick your seats and check out.</li>
+      <li>Refreshing won't lose your place.</li>
+    </ul>
+  </div>
+</div>

@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 
-/** Seat-state key. Colours match SEAT_COLORS in the scene. */
 @Component({
   selector: 'app-hall-legend',
   template: `

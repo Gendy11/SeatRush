@@ -1,0 +1,38 @@
+@let s = status();
+
+<div class="rush" [class.rush--running]="running()" role="group" aria-label="Demo controls">
+  @if (running() && s) {
+    <span class="rush__live" aria-live="polite">
+      <span class="rush__dot"></span>
+      <strong>{{ s.mode === 'Extreme' ? 'Extreme rush' : 'Rush' }}</strong>
+      <span class="rush__stats">{{ s.bots }} bots · {{ s.seatsBooked }} sold</span>
+    </span>
+    <button type="button" class="rush__btn" [disabled]="busy()" (click)="stop()">Stop</button>
+  } @else {
+    <button
+      type="button"
+      class="rush__btn rush__btn--go"
+      [disabled]="busy()"
+      [title]="
+        extreme()
+          ? '300 bots flood the waiting room; you queue behind them, then watch the hall fill live'
+          : 'A bot walks in every few seconds and grabs seats, live'
+      "
+      (click)="start()"
+    >
+      ⚡
+      <span class="rush__long">Simulate {{ extreme() ? 'extreme rush' : 'rush' }}</span>
+      <span class="rush__short">{{ extreme() ? 'Extreme rush' : 'Rush' }}</span>
+    </button>
+  }
+
+  <button
+    type="button"
+    class="rush__btn rush__btn--ghost"
+    [disabled]="busy()"
+    title="Reset showing: stop the bots, free every seat they booked and clear the line"
+    (click)="reset()"
+  >
+    ↺ Reset
+  </button>
+</div>

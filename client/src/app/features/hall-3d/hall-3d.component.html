@@ -5,17 +5,14 @@
   [class.hall3d--intro]="introRunning()"
   [style.--poster]="posterColor()"
 >
-  <!-- three.js canvas goes in here -->
   <div #host class="canvas-host"></div>
 
-  <!-- Film grain + vignette over the canvas; purely visual, never blocks clicks. -->
   <div class="grain" aria-hidden="true"></div>
 
   @if (introRunning()) {
     <button type="button" class="skip" (click)="skipIntro()">Skip intro →</button>
   }
 
-  <!-- The overlay stays hidden during the intro and fades in afterwards. -->
   <div class="overlay">
     @if (!seatView()) {
       <app-hall-top-bar />
@@ -43,8 +40,6 @@
       </div>
     }
 
-    <!-- One spot at the top for both directions: "View from" swaps in place with "Back to hall".
-         Never over the seats. -->
     <div class="seat-view">
       @if (seatView()) {
         @if (focusSeat(); as seat) {

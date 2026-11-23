@@ -7,7 +7,6 @@ export interface BookedSeat {
   price: number;
 }
 
-/** A booking, as returned by POST/GET /api/bookings. */
 export interface Booking {
   id: number;
   reference: string;

@@ -11,8 +11,17 @@
   margin-bottom: 20px;
 }
 
+.page-top__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .back {
   display: inline-block;
+  white-space: nowrap;
   font-size: 0.85rem;
   color: var(--text-muted);
 
@@ -25,7 +34,6 @@
   color: var(--text-muted);
 }
 
-/* ---------- Showing info ---------- */
 .info {
   display: flex;
   align-items: center;
@@ -74,13 +82,11 @@
   font-weight: 700;
 }
 
-/* 3D / 2D switch, right side of the showing info. */
 .info__text {
   flex: 1;
   min-width: 0;
 }
 
-/* 3D / 2D switch, top right. */
 .view-toggle {
   display: flex;
   padding: 3px;
@@ -105,7 +111,6 @@
   }
 }
 
-/* "3D needs a bigger screen" message, shown on phones when 3D is picked. */
 .three-d-note {
   display: flex;
   flex-direction: column;
@@ -133,7 +138,6 @@
   }
 }
 
-/* Holds whichever hall is shown, plus the "time's up" overlay on top of it. */
 .stage-wrap {
   position: relative;
 }
@@ -149,25 +153,22 @@
   font-size: 0.85rem;
 }
 
-/* ---------- Hall ---------- */
 .hall {
-  position: relative; /* for the "time's up" overlay */
+  position: relative;
   container-type: inline-size;
   padding: 40px 24px;
   border: 1px solid var(--border);
   border-radius: 16px;
   background: rgba(22, 22, 26, 0.6);
-  overflow-x: auto; /* wide halls (IMAX: 50 per row) scroll inside the panel on small screens */
+  overflow-x: auto;
 }
 
-/* Screen + seats. At least as wide as the hall (small halls stay centred), at most as wide as the widest row. */
 .stage {
   width: max-content;
   min-width: 100%;
   margin: 0 auto;
 }
 
-/* Curved, glowing screen at the front of the hall. */
 .screen {
   width: min(80%, 700px);
   margin: 0 auto 36px;
@@ -183,8 +184,6 @@
 }
 
 .seats {
-  /* Seats grow to fill the hall's width: (width - row labels) / seats per row.
-     Clamped so small halls don't get giant seats and big halls stay clickable (scrolls below 16px). */
   --gap: clamp(4px, 0.45cqi, 6px);
   --seat: clamp(16px, calc((80cqi - 72px) / var(--cols) - var(--gap)), 30px);
   display: flex;
@@ -238,7 +237,6 @@ button.seat {
   }
 }
 
-/* Mine: solid gold. */
 .seat--mine,
 button.seat--mine:hover:not(:disabled) {
   background: var(--accent);
@@ -246,7 +244,6 @@ button.seat--mine:hover:not(:disabled) {
   box-shadow: 0 0 10px rgba(245, 197, 24, 0.45);
 }
 
-/* Held by someone else: dim with diagonal stripes. */
 .seat--taken {
   background: repeating-linear-gradient(45deg, #2a2a31 0 3px, #34343c 3px 6px);
   border-color: #3a3a44;
@@ -267,10 +264,9 @@ button.seat--mine:hover:not(:disabled) {
   }
 }
 
-/* ---------- Session bar ---------- */
 .session {
   position: sticky;
-  top: 72px; /* below the header */
+  top: 72px;
   z-index: 5;
   display: flex;
   align-items: center;
@@ -360,7 +356,6 @@ button.seat--mine:hover:not(:disabled) {
   font-size: 0.85rem;
 }
 
-/* Time's up: covers the hall. */
 .expired {
   position: absolute;
   inset: 0;
@@ -386,11 +381,10 @@ button.seat--mine:hover:not(:disabled) {
   }
 }
 
-/* Phones */
 @media (max-width: 640px) {
   .session {
     flex-wrap: wrap;
-    top: 60px; /* phone header height */
+    top: 60px;
     gap: 10px 16px;
     padding: 10px 12px;
   }
@@ -400,7 +394,6 @@ button.seat--mine:hover:not(:disabled) {
     flex-basis: 100%;
   }
 
-  /* Push [total] Checkout to the right edge, whether or not the total is shown. */
   .session .btn {
     margin-left: auto;
     padding: 10px 18px;
@@ -433,7 +426,6 @@ button.seat--mine:hover:not(:disabled) {
     font-size: 0.85rem;
   }
 
-  /* Wide halls (IMAX: 25 per row) scroll sideways inside this panel, never the whole page. */
   .hall {
     padding: 28px 12px;
   }
@@ -443,7 +435,6 @@ button.seat--mine:hover:not(:disabled) {
   }
 }
 
-/* ---------- Legend ---------- */
 .legend {
   list-style: none;
   margin: 20px 0 0;

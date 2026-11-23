@@ -34,22 +34,18 @@ import { HallLayout, SeatPlacement } from './seat-layout';
 
 const BACKGROUND = new Color('#07070a');
 
-/** How much the camera lowers per metre of zoom-in (radians). Small on purpose: a gentle drift, not a swoop. */
 const TILT_PER_METRE = 0.013;
 
-/** What the scene reports back to the component. Positions are in CSS pixels relative to the host element. */
 export interface HallSceneEvents {
-  /** Mouse over a seat (or null when leaving it). Not fired for touch: phones have no hover. */
   hover: (seatId: number | null, x: number, y: number) => void;
-  /** A click or tap on a seat (not the end of a drag). */
+
   select: (seatId: number) => void;
-  /** The intro sequence started (true) or ended/was skipped (false). */
+
   intro: (running: boolean) => void;
-  /** The poster's dominant colour (CSS), so the HTML overlay can pick up the hall's mood. */
+
   posterColor: (css: string) => void;
 }
 
-/** Intro timeline (ms): projector flickers on, poster fades in, then the camera dollies into the hall. */
 const INTRO = {
   beamOn: 700,
   posterFrom: 500,
@@ -70,13 +66,9 @@ const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 
 const HOVER_LIFT = 0.09;
 const FLIGHT_MS = 1400;
-/** Pointer moved less than this between down and up: a click, not an orbit drag. */
+
 const CLICK_SLOP_PX = 6;
 
-/**
- * The 3D auditorium. Plain TypeScript around three.js, no Angular: the component owns its lifetime.
- * Seats are ONE InstancedMesh (one draw call for the whole hall); a seat's state only changes its instance colour.
- */
 export class HallScene {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
@@ -85,12 +77,11 @@ export class HallScene {
   private readonly resizeObserver: ResizeObserver;
 
   private seats: InstancedMesh | null = null;
-  /** seatId → instance index in the InstancedMesh. */
+
   private readonly seatIndex = new Map<number, number>();
   private readonly hallObjects: Object3D[] = [];
   private disposed = false;
 
-  // Seats
   private layout: HallLayout | null = null;
   private readonly placements = new Map<number, SeatPlacement>();
   private seatIdByIndex: number[] = [];
@@ -99,20 +90,17 @@ export class HallScene {
   private readonly lifting = new Set<number>();
   private readonly matrixHelper = new Object3D();
 
-  // Pointer
   private readonly raycaster = new Raycaster();
   private readonly ndc = new Vector2();
   private pendingHover: { x: number; y: number } | null = null;
   private hoveredIndex = -1;
   private down: { x: number; y: number; time: number } | null = null;
 
-  // Camera
   private flight: CameraFlight | null = null;
   private returnPose: CameraPose | null = null;
   private seatView = false;
   private readonly reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Mood & intro
   private room: RoomBox | null = null;
   private atmosphere: Atmosphere | null = null;
   private screenMaterial: MeshBasicMaterial | null = null;
@@ -121,7 +109,6 @@ export class HallScene {
   private readonly pulseColor = new Color();
   private readonly t0 = performance.now();
 
-  /** Last camera→target distance, to detect zooming (see {@link tiltWithZoom}). */
   private lastDistance = 0;
   private readonly spherical = new Spherical();
   private readonly offset = new Vector3();
@@ -132,7 +119,7 @@ export class HallScene {
   ) {
     this.renderer = new WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.outputColorSpace = SRGBColorSpace;
-    // Sharp enough on retina, without rendering 3× the pixels on high-DPI phones.
+
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setClearColor(BACKGROUND);
     host.appendChild(this.renderer.domElement);
@@ -148,7 +135,7 @@ export class HallScene {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.enablePan = false;
-    this.controls.zoomSpeed = 0.6; // gentler than the default 1.0
+    this.controls.zoomSpeed = 0.6;
 
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(host);
@@ -172,20 +159,14 @@ export class HallScene {
     return this.intro !== null;
   }
 
-  /** Jumps straight to the end of the intro (button, or any click on the hall). */
   skipIntro(): void {
     if (this.intro) this.finishIntro();
   }
 
-  /** Pointer cursor over clickable seats; the component decides what is clickable. */
   setCursor(cursor: 'pointer' | 'default'): void {
     this.renderer.domElement.style.cursor = cursor;
   }
 
-  /**
-   * Flies the camera to the seat's eye height, looking at the screen centre: the real view from that seat.
-   * Orbiting is off while seated. Instant with prefers-reduced-motion.
-   */
   viewFromSeat(seatId: number): Promise<void> {
     const seat = this.placements.get(seatId);
     if (!seat || !this.layout) return Promise.resolve();
@@ -202,7 +183,6 @@ export class HallScene {
     });
   }
 
-  /** Flies back to where the camera was before "View from seat". */
   async backToHall(): Promise<void> {
     if (!this.seatView || !this.returnPose) return;
     await this.flyTo(this.returnPose);
@@ -211,7 +191,6 @@ export class HallScene {
     this.lastDistance = this.camera.position.distanceTo(this.controls.target);
   }
 
-  /** Builds the room, screen and seats for a layout. Call again only if the seat set changes. */
   async build(layout: HallLayout, posterUrl: string, title: string): Promise<void> {
     this.clearHall();
     this.layout = layout;
@@ -222,7 +201,6 @@ export class HallScene {
     const color = await this.addScreen(layout, posterUrl, title);
     if (this.disposed || !color) return;
 
-    // The hall's mood: everything atmospheric is tinted with the poster's dominant colour.
     this.atmosphere = new Atmosphere(layout, this.room, color);
     for (const object of this.atmosphere.objects) this.add(object);
     this.events.posterColor(color.getStyle());
@@ -231,7 +209,6 @@ export class HallScene {
     if (!this.reducedMotion) this.startIntro(overview);
   }
 
-  /** Recolours seats. Cheap (no geometry changes), safe to call on every state change. */
   updateSeats(states: ReadonlyMap<number, SeatVisualState>): void {
     if (!this.seats) return;
     const held: number[] = [];
@@ -248,7 +225,7 @@ export class HallScene {
     }
     if (this.seats.instanceColor) this.seats.instanceColor.needsUpdate = true;
 
-    this.heldIndices = held; // pulsed every frame, see pulseHeld
+    this.heldIndices = held;
     this.atmosphere?.setMine(mine);
   }
 
@@ -269,34 +246,29 @@ export class HallScene {
     this.renderer.domElement.remove();
   }
 
-  // ---------- Building blocks ----------
-
   private addRoom(layout: HallLayout): void {
     const { width, front, back, ceiling } = roomBox(layout);
 
     const floorMat = new MeshStandardMaterial({ color: '#15151b', roughness: 0.95 });
-    // Slightly lighter than black so the warm side lights can wash the walls.
+
     const wallMat = new MeshStandardMaterial({ color: '#1c1a20', roughness: 0.9 });
 
-    // Flat floor in front of the seats (between the screen and row A).
     const floor = new Mesh(new PlaneGeometry(width, back - front), floorMat);
     floor.rotation.x = -Math.PI / 2;
     floor.position.set(0, 0, (front + back) / 2);
     this.add(floor);
 
-    // One step (riser) per row: stadium seating.
     for (const row of layout.rows) {
       if (row.index === 0) continue;
       const step = new Mesh(new BoxGeometry(width, row.y, 1), floorMat);
       step.position.set(0, row.y / 2, row.z);
       this.add(step);
     }
-    // Back platform behind the last row.
+
     const platform = new Mesh(new BoxGeometry(width, layout.backY, back - layout.backZ), floorMat);
     platform.position.set(0, layout.backY / 2, (layout.backZ + back) / 2 + 0.5);
     this.add(platform);
 
-    // Side walls, back wall, ceiling.
     const depth = back - front;
     for (const side of [-1, 1]) {
       const wall = new Mesh(new PlaneGeometry(depth, ceiling), wallMat);
@@ -317,10 +289,6 @@ export class HallScene {
     this.addWallSconces(width, front, back, ceiling);
   }
 
-  /**
-   * Warm wall lights down both sides, like a real auditorium: a small glowing fixture plus a short-range
-   * point light that washes the wall and the outer seats. A handful of lights, cheap enough for any laptop.
-   */
   private addWallSconces(width: number, front: number, back: number, ceiling: number): void {
     const count = Math.min(4, Math.max(2, Math.round((back - front) / 7)));
     const fixtureMat = new MeshStandardMaterial({
@@ -381,7 +349,6 @@ export class HallScene {
   ): Promise<Color | null> {
     const { width, height, y, z } = layout.screen;
 
-    // Slightly curved: bend the plane so its edges come towards the audience.
     const geometry = new PlaneGeometry(width, height, 48, 1);
     const position = geometry.attributes['position'];
     const curve = width * 0.05;
@@ -398,8 +365,6 @@ export class HallScene {
       return null;
     }
 
-    // Unlit: the screen is a light source, so it ignores scene lighting. Its colour is used as a brightness
-    // control (black → white) for the intro's fade-in.
     this.screenMaterial = new MeshBasicMaterial({ map: texture, toneMapped: false, fog: false });
     const screen = new Mesh(geometry, this.screenMaterial);
     screen.position.set(0, y, z);
@@ -407,26 +372,19 @@ export class HallScene {
     return color;
   }
 
-  /**
-   * Overview camera: behind and above the back row, looking at the screen. The distance is worked out from the
-   * hall's width and the camera's horizontal field of view, so wide halls (IMAX) fit on screen too.
-   */
   private frameOverview(layout: HallLayout): CameraPose {
-    // Aim between the rows and the screen so both the whole screen and the seats are in frame.
     const target = new Vector3(0, layout.screen.y * 0.75, (layout.screen.z + layout.backZ) * 0.3);
 
     const vfov = (this.camera.fov * Math.PI) / 180;
     const hfov = 2 * Math.atan(Math.tan(vfov / 2) * this.camera.aspect);
     const fitWidth = (layout.width / 2 + 1.5) / Math.tan(hfov / 2);
-    // Pulled back far enough that the rows nearest the viewer clear the bottom sheet and the projector.
+
     const distance = Math.max(layout.backZ - target.z + 9, fitWidth * 1.08) * 1.22;
 
-    // Look down at the rows at roughly 35°, from above the back of the hall.
     const direction = new Vector3(0, 0.7, 1).normalize();
     this.camera.position.copy(target).addScaledVector(direction, distance);
     this.controls.target.copy(target);
 
-    // Keep the viewer above the floor and in front of the hall; zoom within sensible limits.
     this.controls.minDistance = 5;
     this.controls.maxDistance = distance * 1.3;
     this.controls.minPolarAngle = Math.PI * 0.15;
@@ -438,12 +396,6 @@ export class HallScene {
     return this.currentPose();
   }
 
-  // ---------- Intro ----------
-
-  /**
-   * Camera starts up in the projection booth, behind the projector. The projector flickers on, the poster fades
-   * in on the screen, then the camera dollies down into the overview. Skippable; never runs with reduced motion.
-   */
   private startIntro(to: CameraPose): void {
     if (!this.room || !this.layout) return;
     const lens = lensPosition(this.room);
@@ -465,7 +417,6 @@ export class HallScene {
     if (!this.intro) return;
     const e = now - this.intro.start;
 
-    // Projector warming up: a few uneven flickers, then steady.
     const flicker = e < INTRO.beamOn ? 0.55 + 0.45 * Math.sin(e * 0.09) * Math.sin(e * 0.023) : 1;
     const beam = smooth(0, INTRO.beamOn, e) * flicker;
     const poster = smooth(INTRO.posterFrom, INTRO.posterTo, e);
@@ -501,7 +452,6 @@ export class HallScene {
     this.screenMaterial?.color.setScalar(poster);
   }
 
-  /** Seats held by others gently pulse amber, each slightly out of phase, so the hall feels contested. */
   private pulseHeld(t: number): void {
     if (!this.seats || this.heldIndices.length === 0) return;
     for (const index of this.heldIndices) {
@@ -511,8 +461,6 @@ export class HallScene {
     }
     if (this.seats.instanceColor) this.seats.instanceColor.needsUpdate = true;
   }
-
-  // ---------- Loop & housekeeping ----------
 
   private frame(): void {
     const now = performance.now();
@@ -534,8 +482,6 @@ export class HallScene {
     this.renderer.render(this.scene, this.camera);
   }
 
-  // ---------- Pointer: hover, click, drag ----------
-
   private readonly onPointerDown = (e: PointerEvent) => {
     this.down = { x: e.clientX, y: e.clientY, time: performance.now() };
   };
@@ -545,9 +491,9 @@ export class HallScene {
     this.down = null;
     if (!down) return;
     const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
-    if (moved > CLICK_SLOP_PX || performance.now() - down.time > 600) return; // an orbit drag, not a click
+    if (moved > CLICK_SLOP_PX || performance.now() - down.time > 600) return;
     if (this.intro) {
-      this.finishIntro(); // any click during the intro skips it
+      this.finishIntro();
       return;
     }
 
@@ -556,14 +502,12 @@ export class HallScene {
   };
 
   private readonly onPointerMove = (e: PointerEvent) => {
-    // Phones and tablets have no hover: tap selects, drag orbits.
     if (e.pointerType !== 'mouse') return;
     this.pendingHover = { x: e.clientX, y: e.clientY };
   };
 
   private readonly onPointerLeave = () => this.clearHover();
 
-  /** Raycasts at most once per frame, on the latest mouse position. */
   private updateHover(): void {
     const p = this.pendingHover;
     if (!p) return;
@@ -591,7 +535,6 @@ export class HallScene {
     this.events.hover(null, 0, 0);
   }
 
-  /** Instance index of the seat under the pointer, or -1. */
   private pick(clientX: number, clientY: number): number {
     if (!this.seats) return -1;
     const rect = this.renderer.domElement.getBoundingClientRect();
@@ -603,8 +546,6 @@ export class HallScene {
     const hit = this.raycaster.intersectObject(this.seats, false)[0];
     return hit?.instanceId ?? -1;
   }
-
-  // ---------- Hover lift (per instance, only the seats that are moving) ----------
 
   private setLiftTarget(index: number, value: number): void {
     this.liftTarget[index] = value;
@@ -630,8 +571,6 @@ export class HallScene {
     this.seats.instanceMatrix.needsUpdate = true;
   }
 
-  // ---------- Camera ----------
-
   private currentPose(): CameraPose {
     return { position: this.camera.position.clone(), target: this.controls.target.clone() };
   }
@@ -646,16 +585,12 @@ export class HallScene {
     });
   }
 
-  /**
-   * Zooming in also lowers the camera a little, like walking down into the hall towards your seat eye level.
-   * Only reacts to distance changes, so dragging to orbit is untouched. ~0.75° per metre moved.
-   */
   private tiltWithZoom(): void {
     this.offset.copy(this.camera.position).sub(this.controls.target);
     const distance = this.offset.length();
-    const delta = this.lastDistance - distance; // > 0 while zooming in
+    const delta = this.lastDistance - distance;
     this.lastDistance = distance;
-    if (Math.abs(delta) < 1e-4 || Math.abs(delta) > 5) return; // no zoom, or a camera jump (rebuild)
+    if (Math.abs(delta) < 1e-4 || Math.abs(delta) > 5) return;
 
     this.spherical.setFromVector3(this.offset);
     this.spherical.phi = Math.min(
@@ -667,7 +602,6 @@ export class HallScene {
       .add(this.offset.setFromSpherical(this.spherical));
   }
 
-  /** No rendering while the tab is hidden: saves battery and GPU. */
   private readonly onVisibility = () => {
     if (this.disposed) return;
     this.renderer.setAnimationLoop(document.hidden ? null : () => this.frame());
@@ -706,12 +640,11 @@ export class HallScene {
   }
 }
 
-/** A low-poly cinema seat: rounded cushion + rounded backrest, merged into one geometry. */
 function seatGeometry(): BufferGeometry {
   const cushion = new RoundedBoxGeometry(0.52, 0.14, 0.5, 2, 0.05);
   cushion.translate(0, 0.42, 0);
   const back = new RoundedBoxGeometry(0.52, 0.6, 0.1, 2, 0.04);
-  back.translate(0, 0.68, 0.22); // behind the cushion, away from the screen
+  back.translate(0, 0.68, 0.22);
   const merged = mergeGeometries([cushion, back]);
   cushion.dispose();
   back.dispose();

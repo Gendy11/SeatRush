@@ -1,7 +1,6 @@
 import { formatNumber } from '@angular/common';
 import { inject, LOCALE_ID, Pipe, PipeTransform } from '@angular/core';
 
-/** The one place prices are formatted: 250 → "EGP 250", 87.5 → "EGP 87.50". */
 @Pipe({ name: 'price' })
 export class PricePipe implements PipeTransform {
   static readonly currency = 'EGP';

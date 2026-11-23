@@ -3,7 +3,6 @@ import { RouterLink } from '@angular/router';
 import { PricePipe } from '../../../shared/pipes/price.pipe';
 import { SeatMapStore } from '../../seat-map/seat-map.store';
 
-/** Bottom of the 3D hall: countdown, my seats as chips, total and Checkout. */
 @Component({
   selector: 'app-hall-bottom-sheet',
   imports: [PricePipe, RouterLink],

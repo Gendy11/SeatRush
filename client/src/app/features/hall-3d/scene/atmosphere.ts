@@ -19,10 +19,8 @@ import {
 } from 'three';
 import { HallLayout } from './seat-layout';
 
-/** Peak opacity of the projector beam (additive). Kept low on purpose. */
 const BEAM_OPACITY = 0.055;
 
-/** Size of the room around the seats; shared by the room builder and the atmosphere. */
 export interface RoomBox {
   width: number;
   front: number;
@@ -39,16 +37,10 @@ export function roomBox(layout: HallLayout): RoomBox {
   };
 }
 
-/** Where the projector lens sits: tucked up under the ceiling, flush with the back wall, centred. */
 export function lensPosition(room: RoomBox): Vector3 {
   return new Vector3(0, room.ceiling - 0.35, room.back - 0.15);
 }
 
-/**
- * Everything that gives the hall its mood, tinted with the poster's colour:
- * screen halo, coloured screen light on the first rows, projector beam with drifting dust, aisle step lights,
- * and a gold floor glow under the viewer's own seats. Purely visual; nothing here is interactive.
- */
 export class Atmosphere {
   readonly objects: Object3D[] = [];
 
@@ -63,7 +55,6 @@ export class Atmosphere {
   private readonly glowTexture = radialTexture();
   private readonly helper = new Object3D();
 
-  /** 0..1, driven by the intro: projector "switching on" and the poster appearing. */
   private beamStrength = 1;
   private glowStrength = 1;
 
@@ -74,7 +65,6 @@ export class Atmosphere {
   ) {
     const { screen } = layout;
 
-    // Soft halo of the poster's colour around the screen: light spilling onto the front wall.
     this.halo = new Mesh(
       new PlaneGeometry(screen.width * 1.7, screen.height * 2.1),
       new MeshBasicMaterial({
@@ -89,7 +79,6 @@ export class Atmosphere {
     this.halo.position.set(0, screen.y, screen.z - 0.25);
     this.objects.push(this.halo);
 
-    // The screen as a light source: coloured light on the first rows and the floor.
     this.screenLight = new PointLight(color, 9, 22, 1.5);
     this.screenLight.position.set(0, screen.y, screen.z + 2.5);
     this.objects.push(this.screenLight);
@@ -103,17 +92,15 @@ export class Atmosphere {
     );
     this.objects.push(this.frontWash, this.frontWash.target);
 
-    // Projector beam: a pyramid from the lens to the screen corners, brighter at the lens.
     const lens = lensPosition(room);
     this.beam = beamMesh(lens, layout, color);
     this.objects.push(this.beam, projectorBox(lens));
 
-    // Dust drifting inside the beam.
     const count = 260;
     this.dustBase = new Float32Array(count * 3);
     this.dustPhase = new Float32Array(count);
     for (let i = 0; i < count; i++) {
-      const t = 0.12 + Math.random() * 0.85; // along the beam, lens → screen
+      const t = 0.12 + Math.random() * 0.85;
       const sx = (Math.random() - 0.5) * screen.width * 0.9;
       const sy = screen.y + (Math.random() - 0.5) * screen.height * 0.9;
       this.dustBase.set(
@@ -138,10 +125,8 @@ export class Atmosphere {
     );
     this.objects.push(this.dust);
 
-    // Dim warm step lights along every aisle, one per row.
     this.objects.push(aisleLights(layout));
 
-    // Gold floor glow under my seats (count set in setMine).
     this.mineGlow = new InstancedMesh(
       new PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
       new MeshBasicMaterial({
@@ -166,7 +151,6 @@ export class Atmosphere {
     this.glowStrength = value;
   }
 
-  /** Places a floor glow under each of my seats. */
   setMine(positions: readonly { x: number; y: number; z: number }[]): void {
     positions.forEach((p, i) => {
       this.helper.position.set(p.x, p.y + 0.015, p.z);
@@ -177,20 +161,16 @@ export class Atmosphere {
     this.mineGlow.instanceMatrix.needsUpdate = true;
   }
 
-  /** Per-frame animation. `t` in seconds. */
   update(t: number): void {
-    // Slow "breathing" of the screen glow (period ~10s, ±8%) so the room never feels frozen.
     const breath = 1 + Math.sin(t * 0.6) * 0.08;
     const glow = this.glowStrength * breath;
     this.screenLight.intensity = 9 * glow;
     this.frontWash.intensity = 14 * glow;
     this.halo.material.opacity = 0.35 * glow;
 
-    // Real projector beams are barely visible: just enough to read the light's path and catch the dust.
     this.beam.material.opacity = BEAM_OPACITY * this.beamStrength * (0.9 + Math.sin(t * 1.3) * 0.1);
     this.dust.material.opacity = 0.55 * this.beamStrength;
 
-    // Dust: slow drift around each particle's home position.
     const positions = this.dust.geometry.attributes['position'] as BufferAttribute;
     const arr = positions.array as Float32Array;
     for (let i = 0; i < this.dustPhase.length; i++) {
@@ -208,7 +188,6 @@ export class Atmosphere {
   }
 }
 
-/** White → transparent radial gradient, reused for glows and dust. */
 function radialTexture(): CanvasTexture {
   const size = 128;
   const canvas = document.createElement('canvas');
@@ -239,7 +218,6 @@ function beamMesh(
     [-hw, screen.y + hh],
   ];
 
-  // 4 triangles (lens + two adjacent corners). Vertex colours fade from bright at the lens to faint at the screen.
   const positions: number[] = [];
   const colors: number[] = [];
   const near = color.clone().lerp(new Color('#ffffff'), 0.5);
@@ -268,14 +246,9 @@ function beamMesh(
   );
 }
 
-/**
- * The projector, reduced to its glowing lens on the back wall: a small flat panel facing the screen. Planes are
- * only drawn from the front, so from the overview camera (behind the back wall) it is invisible and never blocks
- * the seats; it only shows when looking back from the hall, as the source of the beam.
- */
 function projectorBox(lens: Vector3): Object3D {
   const glass = new Mesh(new PlaneGeometry(0.16, 0.12), new MeshBasicMaterial({ color: '#fff6dd' }));
-  glass.rotation.y = Math.PI; // face the screen (towards -z)
+  glass.rotation.y = Math.PI;
   glass.position.copy(lens);
   return glass;
 }

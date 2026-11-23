@@ -24,7 +24,7 @@ public class SeatRushFixture : IAsyncLifetime
     /// <summary>Every change pushed by any hold service created by this fixture.</summary>
     public RecordingNotifier Notifier { get; } = new();
 
-    private string ConnectionString =>
+    public string ConnectionString =>
         // Keep the pool well below Postgres' max_connections so heavy concurrent tests queue instead of failing.
         _postgres.GetConnectionString() + ";Maximum Pool Size=40";
 
@@ -72,14 +72,14 @@ public class SeatRushFixture : IAsyncLifetime
     }
 
     /// <summary>Creates a fresh showing (own venue + movie) and returns its id and seat ids.</summary>
-    public async Task<(int EventId, int[] SeatIds)> CreateShowingAsync(int rows = 2, int seatsPerRow = 5)
+    public async Task<(int EventId, int[] SeatIds)> CreateShowingAsync(int rows = 2, int seatsPerRow = 5, bool hasWaitingRoom = false)
     {
         await using var db = NewDbContext();
         var suffix = Guid.NewGuid().ToString("N")[..8];
 
         var venue = Venue.WithLayout($"Venue {suffix}", rows, seatsPerRow, ticketPrice: 200m);
         var movie = new Movie { Title = $"Movie {suffix}", PosterUrl = "posters/x.jpg", BackdropUrl = "backdrops/x.jpg", AgeRating = "PG", DurationMinutes = 100 };
-        var ev = Event.For(movie, venue, DateTime.UtcNow.AddDays(1));
+        var ev = Event.For(movie, venue, DateTime.UtcNow.AddDays(1), hasWaitingRoom);
 
         db.Events.Add(ev);
         await db.SaveChangesAsync();

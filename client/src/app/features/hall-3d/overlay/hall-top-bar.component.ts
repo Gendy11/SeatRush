@@ -2,7 +2,6 @@ import { DatePipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { SeatMapStore } from '../../seat-map/seat-map.store';
 
-/** Top of the 3D hall: big condensed title, show time and hall, live availability. */
 @Component({
   selector: 'app-hall-top-bar',
   imports: [DatePipe],
@@ -40,7 +39,6 @@ import { SeatMapStore } from '../../seat-map/seat-map.store';
       font-size: clamp(2rem, 5vw, 3.4rem);
       line-height: 0.95;
       letter-spacing: 0.02em;
-      /* Glow in the poster's colour (set by the 3D hall), so each movie's hall has its own mood. */
       text-shadow: 0 0 36px var(--poster, transparent);
     }
     .meta {

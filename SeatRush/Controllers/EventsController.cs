@@ -1,4 +1,5 @@
 using Core.Interfaces;
+using Core.Models;
 using Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,15 +8,14 @@ using SeatRush.DTOs;
 
 namespace SeatRush.Controllers;
 
-public class EventsController(SeatRushContext db, ISeatService seats) : BaseApiController
+public class EventsController(SeatRushContext db, ISeatService seats, IWaitingRoomService waitingRoom) : BaseApiController
 {
-    /// <summary>FR4: upcoming showings only, soonest first.</summary>
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<EventDto>>> GetEvents(CancellationToken ct)
     {
         var events = await db.Events
             .AsNoTracking()
-            .Where(e => e.ShowTime > DateTime.UtcNow) // translated to now() in Postgres
+            .Where(e => e.ShowTime > DateTime.UtcNow)
             .OrderBy(e => e.ShowTime)
             .Select(e => new EventDto(e.Id, e.MovieId, e.Movie!.Title, e.Venue!.Name, e.ShowTime, e.Venue.Capacity))
             .ToListAsync(ct);
@@ -23,10 +23,6 @@ public class EventsController(SeatRushContext db, ISeatService seats) : BaseApiC
         return Ok(events);
     }
 
-    /// <summary>
-    /// FR10: start (or resume) the user's 7-minute booking session for this showing.
-    /// Idempotent: refreshing the page returns the same deadline.
-    /// </summary>
     [Authorize]
     [HttpPost("{eventId:int}/session")]
     public async Task<ActionResult<BookingSessionDto>> StartSession(
@@ -38,22 +34,70 @@ public class EventsController(SeatRushContext db, ISeatService seats) : BaseApiC
         if (!TryGetUserId(out var userId))
             return MissingUser();
 
-        var showTime = await db.Events
+        var ev = await db.Events
             .Where(e => e.Id == eventId)
-            .Select(e => (DateTime?)e.ShowTime)
+            .Select(e => new { e.ShowTime, e.HasWaitingRoom })
             .FirstOrDefaultAsync(ct);
 
-        if (showTime is null)
+        if (ev is null)
             return NotFound();
 
-        if (showTime <= clock.GetUtcNow().UtcDateTime)
+        if (ev.ShowTime <= clock.GetUtcNow().UtcDateTime)
             return Problem(statusCode: StatusCodes.Status409Conflict, title: "This showing has already started.");
 
+        if (ev.HasWaitingRoom
+            && await sessions.GetActiveAsync(eventId, userId) is null
+            && !await waitingRoom.IsAdmittedAsync(eventId, userId))
+        {
+            return Problem(statusCode: StatusCodes.Status403Forbidden, title: "Join the waiting room first.");
+        }
+
         var session = await sessions.GetOrStartAsync(eventId, userId);
+
+        if (ev.HasWaitingRoom)
+            await waitingRoom.EnterAsync(eventId, userId, session.ExpiresAt);
+
         return Ok(new BookingSessionDto(eventId, session.ExpiresAt, clock.GetUtcNow().UtcDateTime));
     }
 
-    /// <summary>One showing with its movie and venue details (header of the seat-map page).</summary>
+    [Authorize]
+    [HttpPost("{eventId:int}/queue")]
+    public async Task<ActionResult<QueueStatusDto>> JoinQueue(int eventId, [FromServices] TimeProvider clock, CancellationToken ct)
+    {
+        if (!TryGetUserId(out var userId))
+            return MissingUser();
+
+        var ev = await db.Events
+            .Where(e => e.Id == eventId)
+            .Select(e => new { e.ShowTime, e.HasWaitingRoom })
+            .FirstOrDefaultAsync(ct);
+
+        if (ev is null)
+            return NotFound();
+
+        if (ev.ShowTime <= clock.GetUtcNow().UtcDateTime)
+            return Problem(statusCode: StatusCodes.Status409Conflict, title: "This showing has already started.");
+
+        var status = ev.HasWaitingRoom
+            ? await waitingRoom.JoinAsync(eventId, userId)
+            : new QueueStatus(QueueState.Admitted);
+
+        return Ok(ToDto(status, clock));
+    }
+
+    [Authorize]
+    [HttpGet("{eventId:int}/queue")]
+    public async Task<ActionResult<QueueStatusDto>> GetQueueStatus(int eventId, [FromServices] TimeProvider clock)
+    {
+        if (!TryGetUserId(out var userId))
+            return MissingUser();
+
+        return Ok(ToDto(await waitingRoom.GetStatusAsync(eventId, userId), clock));
+    }
+
+    private static QueueStatusDto ToDto(QueueStatus s, TimeProvider clock) =>
+        new(s.State.ToString(), s.Position, s.AdmittedUntil, clock.GetUtcNow().UtcDateTime);
+
     [HttpGet("{eventId:int}")]
     public async Task<ActionResult<EventDetailsDto>> GetEvent(int eventId, CancellationToken ct)
     {
@@ -70,16 +114,13 @@ public class EventsController(SeatRushContext db, ISeatService seats) : BaseApiC
                 e.Venue!.Name,
                 e.ShowTime,
                 e.Venue.Capacity,
-                e.Venue.TicketPrice))
+                e.Venue.TicketPrice,
+                e.HasWaitingRoom))
             .FirstOrDefaultAsync(ct);
 
         return ev is null ? NotFound() : Ok(ev);
     }
 
-    /// <summary>
-    /// FR5: every seat with its status (Booked from Postgres, Held from Redis).
-    /// Seats held by the caller (X-User-Id) are flagged isMine.
-    /// </summary>
     [HttpGet("{eventId:int}/seats")]
     public async Task<ActionResult<SeatMapDto>> GetSeatMap(int eventId, [FromServices] TimeProvider clock, CancellationToken ct)
     {

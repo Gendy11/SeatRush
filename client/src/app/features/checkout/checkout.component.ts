@@ -21,7 +21,6 @@ export class CheckoutComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
-  /** Route param :id (bound via withComponentInputBinding). */
   readonly id = input.required<string>();
 
   protected readonly event = signal<EventDetails | null>(null);
@@ -30,16 +29,10 @@ export class CheckoutComponent implements OnInit {
   protected readonly submitting = signal(false);
   protected readonly error = signal<string | null>(null);
 
-  /** Pay at counter is the only method for now, selected by default. */
   protected readonly paymentMethod: PaymentMethod = 'PayAtCounter';
 
-  /**
-   * One key per checkout attempt. Retries (double click, flaky network) reuse it, so the server
-   * returns the same booking instead of creating a second one.
-   */
   private readonly idempotencyKey = crypto.randomUUID();
 
-  // ---------- Countdown (same session as the seat map) ----------
   private clockOffsetMs = 0;
   private readonly deadlineMs = signal<number | null>(null);
   private readonly nowMs = signal(Date.now());
@@ -62,7 +55,6 @@ export class CheckoutComponent implements OnInit {
 
     const eventId = Number(this.id());
 
-    // startSession resumes the active session (same deadline) — it never resets the timer.
     forkJoin({
       event: this.eventService.getEvent(eventId),
       session: this.eventService.startSession(eventId),
@@ -75,7 +67,11 @@ export class CheckoutComponent implements OnInit {
         this.seats.set(map.seats.filter((s) => s.isMine));
         this.loading.set(false);
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
+        if (err.status === 403) {
+          this.router.navigate(['/events', eventId]);
+          return;
+        }
         this.error.set("Couldn't load your checkout.");
         this.loading.set(false);
       },

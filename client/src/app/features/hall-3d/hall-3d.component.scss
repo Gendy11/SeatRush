@@ -21,7 +21,7 @@
 .canvas-host {
   position: absolute;
   inset: 0;
-  touch-action: none; /* drag/pinch orbit the camera instead of scrolling the page */
+  touch-action: none;
 
   ::ng-deep canvas {
     display: block;
@@ -30,7 +30,6 @@
   }
 }
 
-/* Subtle film grain + vignette on top of the 3D view. */
 .grain {
   position: absolute;
   inset: 0;
@@ -40,7 +39,6 @@
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
 }
 
-/* Overlay UI: hidden during the intro, fades in when the camera arrives. */
 .overlay {
   position: absolute;
   inset: 0;
@@ -81,7 +79,6 @@
   }
 }
 
-/* ---------- Tooltip (mouse only) ---------- */
 .tooltip {
   position: absolute;
   z-index: 3;
@@ -127,7 +124,6 @@
   color: var(--text-muted);
 }
 
-/* ---------- View from seat ---------- */
 .seat-view {
   position: absolute;
   z-index: 2;
@@ -153,7 +149,6 @@
   white-space: nowrap;
 }
 
-/* ---------- Toast ---------- */
 .toast {
   position: absolute;
   z-index: 3;
@@ -174,7 +169,6 @@
     border-radius: 14px;
   }
 
-  /* Phones: the title spans the top, so the button sits just below the title and legend. */
   .seat-view {
     top: 156px;
     flex-wrap: wrap;

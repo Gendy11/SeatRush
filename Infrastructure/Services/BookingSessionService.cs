@@ -17,13 +17,10 @@ public class BookingSessionService(
     {
         var key = RedisKeys.Session(eventId, userId);
 
-        // A session can expire between the failed SET and the GET; then simply try again.
         for (var attempt = 0; attempt < 3; attempt++)
         {
             var expiresAt = clock.GetUtcNow().Add(_duration);
 
-            // SET NX: only creates the session if none exists, so refreshes and parallel tabs
-            // can never reset or extend the deadline. The TTL removes it when time is up.
             var created = await _db.StringSetAsync(key, expiresAt.ToUnixTimeMilliseconds(), _duration, When.NotExists);
             if (created)
                 return new BookingSession(eventId, userId, expiresAt.UtcDateTime);
@@ -36,8 +33,12 @@ public class BookingSessionService(
         throw new InvalidOperationException("Could not start a booking session.");
     }
 
-    public Task EndAsync(int eventId, Guid userId) =>
-        _db.KeyDeleteAsync(RedisKeys.Session(eventId, userId));
+    public async Task EndAsync(int eventId, Guid userId)
+    {
+        await _db.KeyDeleteAsync(RedisKeys.Session(eventId, userId));
+
+        await _db.SortedSetRemoveAsync(RedisKeys.Room(eventId), userId.ToString("N"));
+    }
 
     public async Task<BookingSession?> GetActiveAsync(int eventId, Guid userId)
     {

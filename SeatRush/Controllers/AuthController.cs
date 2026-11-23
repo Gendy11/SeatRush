@@ -8,20 +8,12 @@ using SeatRush.DTOs;
 
 namespace SeatRush.Controllers;
 
-/// <summary>
-/// Anonymous guest identity (no signup/login). The access token goes back in the body and the client keeps it
-/// in memory only; the refresh token goes in an HttpOnly cookie that JavaScript can never read.
-/// </summary>
 [AllowAnonymous]
 [EnableRateLimiting(RateLimitingSetup.Guest)]
 public class AuthController(IAuthTokenService tokens, IWebHostEnvironment env) : BaseApiController
 {
     public const string RefreshCookie = "seatrush_rt";
 
-    /// <summary>
-    /// Returns a fresh access token. With a valid refresh cookie: rotates it (same guest). Without one, or with
-    /// an invalid/revoked one: starts a new guest. 409 = a parallel request just rotated the cookie; retry.
-    /// </summary>
     [HttpPost("token")]
     public async Task<ActionResult<AccessTokenDto>> Token()
     {
@@ -34,8 +26,6 @@ public class AuthController(IAuthTokenService tokens, IWebHostEnvironment env) :
 
             if (result.Outcome == RefreshOutcome.RetryLater)
                 return Problem(statusCode: StatusCodes.Status409Conflict, title: "Token is being refreshed, retry.");
-
-            // Invalid: fall through and start a new guest.
         }
 
         return Issue(await tokens.StartGuestAsync());
@@ -45,10 +35,10 @@ public class AuthController(IAuthTokenService tokens, IWebHostEnvironment env) :
     {
         Response.Cookies.Append(RefreshCookie, t.RefreshToken, new CookieOptions
         {
-            HttpOnly = true,                              // JavaScript can't read it, so XSS can't steal it
+            HttpOnly = true,
             Secure = !env.IsDevelopment() || Request.IsHttps,
-            SameSite = SameSiteMode.Strict,               // never sent on cross-site requests (CSRF)
-            Path = "/api/auth",                           // only travels to the token endpoint, not every API call
+            SameSite = SameSiteMode.Strict,
+            Path = "/api/auth",
             Expires = t.RefreshTokenExpiresAt
         });
 

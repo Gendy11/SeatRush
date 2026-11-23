@@ -17,7 +17,6 @@ export class EventsComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly error = signal(false);
 
-  /** Hero: the movie with the soonest showing (the API orders movies that way). */
   protected readonly featured = computed(() => this.movies()[0]);
   protected readonly showingCount = computed(() =>
     this.movies().reduce((n, m) => n + m.showings.length, 0),
@@ -40,7 +39,6 @@ export class EventsComponent implements OnInit {
     });
   }
 
-  /** 128 -> "2h 8m" */
   protected formatDuration(minutes: number): string {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;

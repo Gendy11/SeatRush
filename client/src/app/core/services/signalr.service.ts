@@ -4,19 +4,15 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { SeatChange } from '../../shared/models/seat';
 
-/** What the seat map receives from the live connection. */
 export type LiveEvent =
   | { type: 'change'; change: SeatChange }
-  /** Connection came back after a drop: changes may have been missed, reload the map. */
-  | { type: 'resync' };
+
+  | { type: 'resync' }
+
+  | { type: 'reset' };
 
 @Injectable({ providedIn: 'root' })
 export class SignalrService {
-  /**
-   * Opens a live connection for one showing. Joining the group happens *before* the caller
-   * loads the seat map, so no change can slip between the snapshot and the first push.
-   * Unsubscribing leaves the group and closes the connection.
-   */
   watchEvent(eventId: number): Observable<LiveEvent> {
     return new Observable<LiveEvent>((subscriber) => {
       const connection: HubConnection = new HubConnectionBuilder()
@@ -26,8 +22,8 @@ export class SignalrService {
         .build();
 
       connection.on('SeatChanged', (change: SeatChange) => subscriber.next({ type: 'change', change }));
+      connection.on('ShowingReset', () => subscriber.next({ type: 'reset' }));
 
-      // Group membership is lost on reconnect: re-join, then tell the page to reload the map.
       connection.onreconnected(async () => {
         await connection.invoke('JoinEvent', eventId);
         subscriber.next({ type: 'resync' });

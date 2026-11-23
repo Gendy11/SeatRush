@@ -5,10 +5,6 @@ using SeatRush.DTOs;
 
 namespace SeatRush.SignalR;
 
-/// <summary>
-/// Sends seat changes to the showing's SignalR group. With the Redis backplane enabled, the message
-/// reaches viewers connected to *any* API instance, not only this one.
-/// </summary>
 public class SeatMapNotifier(IHubContext<SeatMapHub> hub, ILogger<SeatMapNotifier> logger) : ISeatMapNotifier
 {
     public async Task SeatChangedAsync(SeatChange change)
@@ -21,9 +17,19 @@ public class SeatMapNotifier(IHubContext<SeatMapHub> hub, ILogger<SeatMapNotifie
         }
         catch (Exception ex)
         {
-            // A failed push must never fail the hold/release itself: it already committed.
-            // Clients re-sync the full map when they reconnect or refocus.
             logger.LogWarning(ex, "Failed to push seat change {@Change}", change);
+        }
+    }
+
+    public async Task ShowingResetAsync(int eventId)
+    {
+        try
+        {
+            await hub.Clients.Group(SeatMapHub.Group(eventId)).SendAsync(SeatMapHub.ShowingResetMethod, eventId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to push reset of event {EventId}", eventId);
         }
     }
 }

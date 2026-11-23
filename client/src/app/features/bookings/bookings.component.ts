@@ -14,7 +14,6 @@ import { PricePipe } from '../../shared/pipes/price.pipe';
 export class BookingsComponent implements OnInit {
   private readonly bookingService = inject(BookingService);
 
-  /** ?new=SR-XXXX after checkout: highlights the booking just made. */
   readonly new = input<string | undefined>();
 
   protected readonly bookings = signal<Booking[]>([]);

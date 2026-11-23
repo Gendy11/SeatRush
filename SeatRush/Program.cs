@@ -5,6 +5,7 @@ using Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using SeatRush.Background;
 using SeatRush.Middleware;
 using SeatRush.RateLimiting;
 using SeatRush.SignalR;
@@ -18,8 +19,6 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddExceptionHandler<RedisUnavailableExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-// Live seat map. The Redis backplane relays group messages between API instances, so a hold made on
-// instance A reaches viewers connected to instance B. Same Redis as holds; channels are prefixed.
 builder.Services.AddSignalR()
     .AddStackExchangeRedis(builder.Configuration.GetConnectionString("Redis")!, o =>
     {
@@ -28,13 +27,13 @@ builder.Services.AddSignalR()
     });
 builder.Services.AddSingleton<ISeatMapNotifier, SeatMapNotifier>();
 
-// Guest identity: every user-specific endpoint needs a valid access token (signed JWT, 15 min).
-// Validation is stateless: signature + issuer + audience + expiry, no database or Redis lookup per request.
+builder.Services.AddHostedService<WaitingRoomAdmitter>();
+
 var authOptions = builder.Configuration.GetSection(AuthOptions.SectionName).Get<AuthOptions>() ?? new AuthOptions();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
     {
-        o.MapInboundClaims = false; // keep "sub" as "sub"
+        o.MapInboundClaims = false;
         o.TokenValidationParameters = new TokenValidationParameters
         {
             ValidIssuer = authOptions.Issuer,
@@ -46,13 +45,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 builder.Services.AddSeatRushRateLimiting();
 
-// The Angular app is served from a different origin (localhost:4200 locally, Vercel in production).
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
     .WithOrigins(allowedOrigins)
     .AllowAnyHeader()
     .AllowAnyMethod()
-    .AllowCredentials())); // needed for the refresh-token cookie and the SignalR client
+    .AllowCredentials()));
 
 var app = builder.Build();
 
@@ -67,11 +65,10 @@ app.UseCors();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseRateLimiter(); // after auth, so per-user policies can read the guest id
+app.UseRateLimiter();
 app.MapControllers();
 app.MapHub<SeatMapHub>(SeatMapHub.Path);
 
-// Apply migrations and seed the demo event on startup (single-instance deployment, so this is safe).
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<SeatRushContext>();

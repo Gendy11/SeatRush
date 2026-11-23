@@ -22,10 +22,10 @@ Cinema-style flash-sale ticketing. Venues (screens) have fixed seat layouts; mov
 ### 3. Waiting room
 | ID | Requirement | Status |
 |----|-------------|--------|
-| FR6 | When a showing is busy, joining users get a queue position (Redis sorted set). | |
-| FR7 | Users are admitted at N per second and receive a short-lived access token. | |
-| FR8 | Users can see their queue position while waiting. | |
-| FR9 | Hold and checkout require a valid access token while the waiting room is active. | |
+| FR6 | Hot showings (`HasWaitingRoom`) put users in a line with a ticket number (Redis sorted set); with no crowd they walk straight in. | Done |
+| FR7 | An admitter lets users in every second while fewer than N are inside; each gets a 60s entry pass. Silent users are skipped but keep their place. | Done |
+| FR8 | Users see their place in line (polled every ~3s); the tab title flashes when they're let in. | Done |
+| FR9 | Starting a session on a hot showing requires an entry pass (403 otherwise); holds and checkout require the session. | Done |
 
 ### 4. Seat hold
 | ID | Requirement | Status |
@@ -57,8 +57,8 @@ Cinema-style flash-sale ticketing. Venues (screens) have fixed seat layouts; mov
 ### 8. Demo
 | ID | Requirement | Status |
 |----|-------------|--------|
-| FR21 | "Simulate rush" button spawns ~200 server-side bot buyers for a showing. | |
-| FR22 | Reset a showing's seats so the demo can be re-run. | |
+| FR21 | "Simulate rush": server-side bots use the real waiting room, holds and checkout. Normal showings: a bot every 5–15s. Hot showings: 300 bots, and the user queues behind 150 of them. | Done |
+| FR22 | Reset a showing: bot bookings removed (real ones kept), holds/sessions/line cleared, viewers reload live. | Done |
 
 ### 9. Identity
 | ID | Requirement | Status |

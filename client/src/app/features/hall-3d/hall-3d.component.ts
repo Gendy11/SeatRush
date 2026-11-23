@@ -20,7 +20,6 @@ import { HallScene } from './scene/hall-scene';
 import { SeatVisualState } from './scene/seat-colors';
 import { buildHallLayout } from './scene/seat-layout';
 
-/** Only the id + position: the seat's state is always read live from the store (see `tooltip`). */
 interface Hovered {
   seatId: number;
   x: number;
@@ -34,11 +33,6 @@ interface Tooltip {
   y: number;
 }
 
-/**
- * The 3D hall plus its HTML overlay. Reads the same SeatMapStore as the 2D grid, so live updates, expiry and
- * holds are shared. three.js runs its own requestAnimationFrame loop; the app is zoneless, so rendering never
- * triggers Angular change detection. Only discrete events (hover target, click) touch signals.
- */
 @Component({
   selector: 'app-hall-3d',
   imports: [PricePipe, HallTopBarComponent, HallBottomSheetComponent, HallLegendComponent],
@@ -49,13 +43,11 @@ export class Hall3dComponent {
   protected readonly store = inject(SeatMapStore);
   private readonly host = viewChild.required<ElementRef<HTMLElement>>('host');
 
-  /** Created after the first render (needs the host element); a signal so the build effect reacts to it. */
   private readonly scene = signal<HallScene | null>(null);
   protected readonly ready = signal(false);
 
   private readonly hovered = signal<Hovered | null>(null);
 
-  /** What the tooltip shows: the hovered seat's CURRENT state, so it updates the moment a hold lands. */
   protected readonly tooltip = computed<Tooltip | null>(() => {
     const h = this.hovered();
     if (!h) return null;
@@ -64,17 +56,15 @@ export class Hall3dComponent {
   });
   protected readonly seatView = signal(false);
   protected readonly introRunning = signal(false);
-  /** The poster's dominant colour, exposed to the overlay as --poster (title glow, accents). */
+
   protected readonly posterColor = signal<string | null>(null);
   private readonly lastClickedId = signal<number | null>(null);
 
-  /** The seat "View from seat" uses: the one I clicked last, else my most recent seat. */
   protected readonly focusSeat = computed(() => {
     const mine = this.store.mySeats();
     return mine.find((s) => s.id === this.lastClickedId()) ?? mine.at(-1) ?? null;
   });
 
-  /** Changes only when the set of seats changes (not on every status change), so the hall is built once. */
   private readonly seatSetKey = computed(() =>
     this.store
       .rows()
@@ -96,8 +86,6 @@ export class Hall3dComponent {
 
     inject(DestroyRef).onDestroy(() => this.scene()?.dispose());
 
-    // (Re)build only when the scene appears, the seat set changes or the movie changes.
-    // rows() is read untracked: it recomputes every tick of the countdown clock, which must not rebuild the hall.
     effect(() => {
       const scene = this.scene();
       const key = this.seatSetKey();
@@ -113,13 +101,11 @@ export class Hall3dComponent {
       });
     });
 
-    // Recolour on every state change (live pushes, my clicks, holds expiring). Cheap: colours only.
     effect(() => {
       const seats = this.store.view();
       if (this.ready()) this.scene()?.updateSeats(visualStates(seats));
     });
 
-    // Leaving the seat view when the seat is gone (released, expired) would strand the camera there.
     effect(() => {
       if (this.seatView() && !this.focusSeat()) void this.backToHall();
     });
@@ -151,7 +137,6 @@ export class Hall3dComponent {
     );
   }
 
-  /** Click/tap: hold a free seat, release my own. Same rules as the 2D grid (the store enforces them). */
   private onSelect(seatId: number): void {
     const seat = this.store.view().find((s) => s.id === seatId);
     if (!seat || this.store.expired() || !isClickable(seat)) return;

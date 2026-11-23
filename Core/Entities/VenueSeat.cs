@@ -1,6 +1,5 @@
 namespace Core.Entities;
 
-/// <summary>A physical seat in a venue (layout only, no sale status).</summary>
 public class VenueSeat : BaseEntity
 {
     public int VenueId { get; set; }

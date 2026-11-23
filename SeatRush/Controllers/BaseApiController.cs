@@ -7,10 +7,6 @@ namespace SeatRush.Controllers;
 [Route("api/[controller]")]
 public abstract class BaseApiController : ControllerBase
 {
-    /// <summary>
-    /// The guest's id from the validated access token ("sub" claim). The server created and signed it,
-    /// so it can't be forged or swapped for someone else's.
-    /// </summary>
     protected bool TryGetUserId(out Guid userId)
     {
         userId = Guid.Empty;
