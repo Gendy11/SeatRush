@@ -24,22 +24,17 @@
     <Folder Include="DTOs\" />
     <Folder Include="Errors\" />
     <Folder Include="Extensions\" />
-    
     <Folder Include="RequestHelpers\" />
-    
   </ItemGroup>
 
-  <!-- Build the Angular client into wwwroot on publish (Release) -->
-  <Target Name="BuildClient" AfterTargets="ComputeFilesToPublish" Condition="'$(Configuration)' == 'Release'">
+  <!-- Build the Angular client into wwwroot BEFORE the .NET build (Release only),
+       then re-scan wwwroot so static web assets see the new hashed file names. -->
+  <Target Name="BuildClient" BeforeTargets="BeforeBuild" Condition="'$(Configuration)' == 'Release'">
     <Exec Command="npm ci" WorkingDirectory="..\client" />
     <Exec Command="npm run build" WorkingDirectory="..\client" />
     <ItemGroup>
-      <ClientDistFiles Include="wwwroot\**" />
-      <ResolvedFileToPublish Include="@(ClientDistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
-        <RelativePath>%(ClientDistFiles.Identity)</RelativePath>
-        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-      </ResolvedFileToPublish>
+      <Content Remove="wwwroot\**" />
+      <Content Include="wwwroot\**" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
   </Target>
 
