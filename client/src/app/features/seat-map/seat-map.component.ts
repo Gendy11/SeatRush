@@ -3,7 +3,6 @@ import {
   afterNextRender,
   Component,
   computed,
-  DestroyRef,
   effect,
   ElementRef,
   inject,
@@ -23,8 +22,6 @@ import { SeatMapStore } from './seat-map.store';
 
 type ViewMode = '3d' | '2d';
 
-const WIDE_SCREEN = '(min-width: 768px)';
-
 @Component({
   selector: 'app-seat-map',
   imports: [DatePipe, PricePipe, RouterLink, Hall3dComponent, WaitingRoomComponent, RushControlComponent],
@@ -40,20 +37,13 @@ export class SeatMapComponent implements OnInit {
 
   protected readonly webgl = supportsWebGL();
 
-  private readonly wideQuery = window.matchMedia(WIDE_SCREEN);
-  protected readonly isWide = signal(this.wideQuery.matches);
+  protected readonly mode = signal<ViewMode>(this.webgl ? '3d' : '2d');
 
-  protected readonly mode = signal<ViewMode>(this.webgl && this.isWide() ? '3d' : '2d');
-
-  protected readonly show3d = computed(() => this.mode() === '3d' && this.webgl && this.isWide());
+  protected readonly show3d = computed(() => this.mode() === '3d' && this.webgl);
 
   private readonly hall = viewChild<ElementRef<HTMLElement>>('hall');
 
   constructor() {
-    const onWidth = (e: MediaQueryListEvent) => this.isWide.set(e.matches);
-    this.wideQuery.addEventListener('change', onWidth);
-    inject(DestroyRef).onDestroy(() => this.wideQuery.removeEventListener('change', onWidth));
-
     effect(() => {
       const el = this.hall()?.nativeElement;
       if (!el) return;

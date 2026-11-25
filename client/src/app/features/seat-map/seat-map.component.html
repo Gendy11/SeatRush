@@ -109,14 +109,7 @@
       } @else if (mode() === '3d') {
         <div class="three-d-note">
           <h2>3D hall</h2>
-          <p>
-            @if (webgl) {
-              The 3D hall is made for bigger screens. Open SeatRush on a tablet or laptop to walk
-              into the cinema in 3D.
-            } @else {
-              Your browser can't display the 3D hall.
-            }
-          </p>
+          <p>Your browser can't display the 3D hall.</p>
           <button type="button" class="btn" (click)="mode.set('2d')">Use the seat map</button>
         </div>
       } @else {

@@ -165,7 +165,7 @@
 
 @media (max-width: 640px) {
   .hall3d {
-    height: clamp(460px, calc(100vh - 150px), 760px);
+    height: clamp(420px, calc(100svh - 210px), 760px);
     border-radius: 14px;
   }
 
