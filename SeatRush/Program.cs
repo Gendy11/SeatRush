@@ -61,6 +61,9 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseCors();
 app.UseHttpsRedirection();
 app.UseAuthentication();
@@ -68,6 +71,7 @@ app.UseAuthorization();
 app.UseRateLimiter();
 app.MapControllers();
 app.MapHub<SeatMapHub>(SeatMapHub.Path);
+app.MapFallbackToFile("index.html");
 
 using (var scope = app.Services.CreateScope())
 {

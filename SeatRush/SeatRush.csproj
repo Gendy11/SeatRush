@@ -29,4 +29,18 @@
     
   </ItemGroup>
 
+  <!-- Build the Angular client into wwwroot on publish (Release) -->
+  <Target Name="BuildClient" AfterTargets="ComputeFilesToPublish" Condition="'$(Configuration)' == 'Release'">
+    <Exec Command="npm ci" WorkingDirectory="..\client" />
+    <Exec Command="npm run build" WorkingDirectory="..\client" />
+    <ItemGroup>
+      <ClientDistFiles Include="wwwroot\**" />
+      <ResolvedFileToPublish Include="@(ClientDistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+        <RelativePath>%(ClientDistFiles.Identity)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+
 </Project>
